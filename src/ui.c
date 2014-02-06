@@ -15,6 +15,8 @@ struct wayland_t {
 	struct wl_compositor *compositor;
 	struct wl_shm *shm;
 	struct wl_seat *seat;
+	struct wl_keyboard *keyboard;
+	struct wl_pointer *pointer;
 	struct wl_shell *shell;
 };
 
@@ -47,6 +49,87 @@ static const struct wl_registry_listener registry_listener = {
 	registry_handle_global_remove
 };
 
+static void
+keyboard_handle_keymap(void *data, struct wl_keyboard *keyboard,
+		       uint32_t format, int fd, uint32_t size){
+	//struct wayland_t *ui = data;
+}
+
+static void
+keyboard_handle_enter(void *data, struct wl_keyboard *keyboard,
+		      uint32_t serial, struct wl_surface *surface,
+		      struct wl_array *keys){
+	//struct wayland_t *ui = data;
+}
+
+static void
+keyboard_handle_leave(void *data, struct wl_keyboard *keyboard,
+		      uint32_t serial, struct wl_surface *surface){
+	//struct wayland_t *ui = data;
+}
+
+static void
+keyboard_handle_key(void *data, struct wl_keyboard *keyboard,
+		    uint32_t serial, uint32_t time, uint32_t key,
+		    uint32_t state_w){
+	//struct wayland_t *ui = data;
+}
+
+static void
+keyboard_handle_modifiers(void *data, struct wl_keyboard *keyboard,
+			  uint32_t serial, uint32_t mods_depressed,
+			  uint32_t mods_latched, uint32_t mods_locked,
+			  uint32_t group){
+	//struct wayland_t *ui = data;
+}
+
+static const struct wl_keyboard_listener keyboard_listener = {
+	keyboard_handle_keymap,
+	keyboard_handle_enter,
+	keyboard_handle_leave,
+	keyboard_handle_key,
+	keyboard_handle_modifiers,
+};
+
+static void
+pointer_handle_enter(void *data, struct wl_pointer *pointer,
+		     uint32_t serial, struct wl_surface *surface,
+		     wl_fixed_t sx_w, wl_fixed_t sy_w){
+	//struct wayland_t *ui = data;
+}
+
+static void
+pointer_handle_leave(void *data, struct wl_pointer *pointer,
+		     uint32_t serial, struct wl_surface *surface){
+	//struct wayland_t *ui = data;
+}
+
+static void
+pointer_handle_motion(void *data, struct wl_pointer *pointer,
+		      uint32_t time, wl_fixed_t sx_w, wl_fixed_t sy_w){
+	//struct wayland_t *ui = data;
+}
+
+static void
+pointer_handle_button(void *data, struct wl_pointer *pointer, uint32_t serial,
+		      uint32_t time, uint32_t button, uint32_t state_w){
+	//struct wayland_t *ui = data;
+}
+
+static void
+pointer_handle_axis(void *data, struct wl_pointer *pointer,
+		    uint32_t time, uint32_t axis, wl_fixed_t value){
+	//struct wayland_t *ui = data;
+}
+
+static const struct wl_pointer_listener pointer_listener = {
+	pointer_handle_enter,
+	pointer_handle_leave,
+	pointer_handle_motion,
+	pointer_handle_button,
+	pointer_handle_axis,
+};
+
 struct wayland_t *
 init_ui(void) {
 	struct wayland_t *ui;
@@ -59,6 +142,13 @@ init_ui(void) {
 	wl_registry_add_listener(ui->registry, &registry_listener, ui);
 
 	wl_display_roundtrip(ui->display);
+	
+	ui->keyboard = wl_seat_get_keyboard(ui->seat);
+	wl_keyboard_add_listener(ui->keyboard, &keyboard_listener, ui);
+
+	ui->pointer = wl_seat_get_pointer(ui->seat);
+	wl_pointer_add_listener(ui->pointer, &pointer_listener, ui);
+
 	return ui;
 }
 
@@ -72,6 +162,8 @@ exit_ui(struct wayland_t *ui){
 	wl_seat_destroy(ui->seat);
 	wl_compositor_destroy(ui->compositor);
 	wl_registry_destroy(ui->registry);
+	wl_keyboard_destroy(ui->keyboard);
+	wl_pointer_destroy(ui->pointer);
 
 	wl_display_disconnect(ui->display);
 	free(ui);
