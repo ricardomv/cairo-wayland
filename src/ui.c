@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <errno.h>
 
 #include <wayland-client.h>
 #include <wayland-client-protocol.h>
@@ -18,7 +17,10 @@ struct wayland_t {
 	struct wl_keyboard *keyboard;
 	struct wl_pointer *pointer;
 	struct wl_shell *shell;
+	struct wl_surface *surface;
+	struct wl_shell_surface *shell_surface;
 };
+
 
 void
 registry_handle_global(void *data, struct wl_registry *registry, uint32_t name,
@@ -130,6 +132,23 @@ static const struct wl_pointer_listener pointer_listener = {
 	pointer_handle_axis,
 };
 
+static void
+surface_enter(void *data,
+	      struct wl_surface *wl_surface, struct wl_output *wl_output){
+	//struct wayland_t *ui = data;
+}
+
+static void
+surface_leave(void *data,
+	      struct wl_surface *wl_surface, struct wl_output *output){
+	//struct wayland_t *ui = data;
+}
+
+static const struct wl_surface_listener surface_listener = {
+	surface_enter,
+	surface_leave
+};
+
 struct wayland_t *
 init_ui(void) {
 	struct wayland_t *ui;
@@ -149,6 +168,11 @@ init_ui(void) {
 	ui->pointer = wl_seat_get_pointer(ui->seat);
 	wl_pointer_add_listener(ui->pointer, &pointer_listener, ui);
 
+	ui->surface = wl_compositor_create_surface(ui->compositor);
+	wl_surface_add_listener(ui->surface, &surface_listener, ui);
+
+	ui->shell_surface = wl_shell_get_shell_surface(ui->shell,
+							   ui->surface);
 	return ui;
 }
 
@@ -164,6 +188,7 @@ exit_ui(struct wayland_t *ui){
 	wl_registry_destroy(ui->registry);
 	wl_keyboard_destroy(ui->keyboard);
 	wl_pointer_destroy(ui->pointer);
+	wl_surface_destroy(ui->surface);
 
 	wl_display_disconnect(ui->display);
 	free(ui);
