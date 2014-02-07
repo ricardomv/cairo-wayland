@@ -6,21 +6,7 @@
 #include <wayland-client-protocol.h>
 
 #include "util.h"
-
-struct wayland_t {
-	struct wl_display *display;
-	struct wl_output *output;
-	struct wl_registry *registry;
-	struct wl_compositor *compositor;
-	struct wl_shm *shm;
-	struct wl_seat *seat;
-	struct wl_keyboard *keyboard;
-	struct wl_pointer *pointer;
-	struct wl_shell *shell;
-	struct wl_surface *surface;
-	struct wl_shell_surface *shell_surface;
-};
-
+#include "ui.h"
 
 void
 registry_handle_global(void *data, struct wl_registry *registry, uint32_t name,
@@ -189,6 +175,7 @@ exit_ui(struct wayland_t *ui){
 	wl_keyboard_destroy(ui->keyboard);
 	wl_pointer_destroy(ui->pointer);
 	wl_surface_destroy(ui->surface);
+	wl_shell_surface_destroy(ui->shell_surface);
 
 	wl_display_disconnect(ui->display);
 	free(ui);
