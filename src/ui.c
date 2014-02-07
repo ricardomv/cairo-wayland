@@ -159,6 +159,10 @@ init_ui(void) {
 
 	ui->shell_surface = wl_shell_get_shell_surface(ui->shell,
 							   ui->surface);
+
+	wl_shell_surface_set_title(ui->shell_surface,"shm surface");
+	wl_shell_surface_set_toplevel(ui->shell_surface);
+
 	return ui;
 }
 
