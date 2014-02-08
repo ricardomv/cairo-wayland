@@ -23,19 +23,45 @@ signal_int(int signum)
 	running = 0;
 }
 
+void
+set_random_color(cairo_t *cr)
+{
+	cairo_set_source_rgba(cr,
+			      0.5 + (random() % 50) / 49.0,
+			      0.5 + (random() % 50) / 49.0,
+			      0.5 + (random() % 50) / 49.0,
+			      (random() % 100) / 99.0);
+}
+
+void
+color_test(cairo_surface_t *surface){
+	cairo_t *cr;
+	cr = cairo_create(surface);
+
+
+	cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
+
+	set_random_color(cr);
+	cairo_paint(cr);
+	cairo_select_font_face(cr, "Terminus",
+		CAIRO_FONT_SLANT_NORMAL,
+		CAIRO_FONT_WEIGHT_NORMAL);
+	cairo_set_font_size(cr, 15);
+	cairo_set_source_rgba(cr, 0, 0, 0, 1);
+	cairo_move_to(cr,0,20);
+	cairo_show_text(cr,"text");
+	cairo_set_antialias(cr,CAIRO_ANTIALIAS_FAST);
+
+	cairo_destroy(cr);
+}
+
 static const struct wl_callback_listener frame_listener;
 
 static void
 redraw(void *data, struct wl_callback *callback, uint32_t time){
 	struct wayland_t *ui = data;
-	cairo_t *cr;
 
-	cr = cairo_create(ui->cairo_surface);
-
-		cairo_set_source_rgba(cr, 1, 0.5, 1, 0.5);
-		cairo_paint(cr);
-
-
+	color_test(ui->cairo_surface);
 	
 	wl_surface_attach(ui->surface,display_get_buffer_for_surface(ui->display,ui->cairo_surface),0,0);
 		/* repaint all the pixels in the surface, change size to only repaint changed area*/
@@ -44,11 +70,10 @@ redraw(void *data, struct wl_callback *callback, uint32_t time){
 					ui->window_rectangle->width, 
 					ui->window_rectangle->height);
 
-	//ui->callback = wl_surface_frame(ui->surface);
-	//wl_callback_add_listener(ui->callback, &frame_listener, ui);
+	ui->callback = wl_surface_frame(ui->surface);
+	wl_callback_add_listener(ui->callback, &frame_listener, ui);
 
 	wl_surface_commit(ui->surface);
-	cairo_destroy(cr);
 }
 
 static const struct wl_callback_listener frame_listener = {
