@@ -5,6 +5,8 @@
 #include <wayland-client.h>
 #include <wayland-client-protocol.h>
 
+#include <cairo/cairo.h>
+
 #include "util.h"
 #include "ui.h"
 

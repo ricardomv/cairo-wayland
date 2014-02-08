@@ -1,3 +1,10 @@
+struct rectangle {
+	int32_t x;
+	int32_t y;
+	int32_t width;
+	int32_t height;
+};
+
 struct wayland_t {
 	struct wl_display *display;
 	struct wl_output *output;
@@ -10,6 +17,10 @@ struct wayland_t {
 	struct wl_shell *shell;
 	struct wl_surface *surface;
 	struct wl_shell_surface *shell_surface;
+	struct wl_callback *callback;
+	struct rectangle *window_rectangle;
+
+	cairo_surface_t *cairo_surface;
 };
 
 

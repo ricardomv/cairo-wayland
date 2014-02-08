@@ -10,11 +10,10 @@
 #include <sys/epoll.h>
 #include <sys/timerfd.h>
 
-#include <cairo/cairo.h>
-#include <cairo/cairo-gl.h>
-
 #include <wayland-client.h>
 #include <wayland-client-protocol.h>
+
+#include <cairo/cairo.h>
 
 #include "util.h"
 #define SURFACE_OPAQUE 0x01
