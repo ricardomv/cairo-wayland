@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <signal.h>
 
 #include <wayland-client.h>
 
@@ -13,7 +14,14 @@
 struct app_t {
 	struct wayland_t *ui;
 };
-int aux = 0;
+
+int running = 1;
+
+static void
+signal_int(int signum)
+{
+	running = 0;
+}
 
 static const struct wl_callback_listener frame_listener;
 
@@ -41,7 +49,6 @@ redraw(void *data, struct wl_callback *callback, uint32_t time){
 
 	wl_surface_commit(ui->surface);
 	cairo_destroy(cr);
-	aux++;
 }
 
 static const struct wl_callback_listener frame_listener = {
@@ -51,6 +58,8 @@ static const struct wl_callback_listener frame_listener = {
 int main(int argc, char const *argv[])
 {
 	struct app_t *term;
+	struct sigaction sigint;
+	int ret = 0;
 
 	term = xzalloc(sizeof *term);
 	term->ui = init_ui();
@@ -67,8 +76,13 @@ int main(int argc, char const *argv[])
 
 	redraw(term->ui, NULL, 0);
 
-	for(;aux < 10;) {
-		wl_display_dispatch(term->ui->display);
+	sigint.sa_handler = signal_int;
+	sigemptyset(&sigint.sa_mask);
+	sigint.sa_flags = SA_RESETHAND;
+	sigaction(SIGINT, &sigint, NULL);
+	
+	for(;running && ret != -1;) {
+		ret = wl_display_dispatch(term->ui->display);
 	}
 
 	exit_ui(term->ui);
