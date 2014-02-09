@@ -99,12 +99,16 @@ keyboard_handle_key(void *data, struct wl_keyboard *keyboard,
 		    uint32_t state_w){
 	xkb_keysym_t ksym;
 	struct wayland_t *ui = data;
-	char new_char[2] = " \0";
+	char buf[32];
+	size_t len;
 
 	ksym = xkb_state_key_get_one_sym(ui->xkb->state, key + 8);
-	if (state_w == WL_KEYBOARD_KEY_STATE_PRESSED && ksym > 'A' && ksym < 'z') {
-		new_char[0] = ksym;
-		strcat(ui->buffer,new_char);
+	len = xkb_keysym_to_utf8(ksym, buf, sizeof buf);
+	if (len > 0)
+	    len--;
+
+	if (state_w == WL_KEYBOARD_KEY_STATE_PRESSED) {
+		strcat(ui->buffer,buf);
 	}
 }
 
@@ -222,7 +226,7 @@ init_ui(void) {
 
 	ui->xkb = xzalloc(sizeof *ui->xkb);
 	ui->xkb->ctx = xkb_context_new(0);
-	ui->buffer = xzalloc(sizeof *ui->buffer*50);
+	ui->buffer = xzalloc(sizeof *ui->buffer*50); /* FIXME: temporary */
 
 	ui->pointer = wl_seat_get_pointer(ui->seat);
 	wl_pointer_add_listener(ui->pointer, &pointer_listener, ui);
