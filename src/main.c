@@ -30,11 +30,11 @@ set_random_color(cairo_t *cr)
 			      0.5 + (random() % 50) / 49.0,
 			      0.5 + (random() % 50) / 49.0,
 			      0.5 + (random() % 50) / 49.0,
-			      (random() % 100) / 99.0);
+			      0.5 + (random() % 100) / 99.0);
 }
 
 void
-color_test(cairo_surface_t *surface){
+color_test(struct wayland_t *ui,cairo_surface_t *surface){
 	cairo_t *cr;
 	cr = cairo_create(surface);
 
@@ -49,7 +49,7 @@ color_test(cairo_surface_t *surface){
 	cairo_set_font_size(cr, 15);
 	cairo_set_source_rgba(cr, 0, 0, 0, 1);
 	cairo_move_to(cr,0,20);
-	cairo_show_text(cr,"text");
+	cairo_show_text(cr,ui->buffer);
 	cairo_set_antialias(cr,CAIRO_ANTIALIAS_FAST);
 
 	cairo_destroy(cr);
@@ -61,7 +61,7 @@ static void
 redraw(void *data, struct wl_callback *callback, uint32_t time){
 	struct wayland_t *ui = data;
 
-	color_test(ui->cairo_surface);
+	color_test(ui,ui->cairo_surface);
 	
 	wl_surface_attach(ui->surface,display_get_buffer_for_surface(ui->display,ui->cairo_surface),0,0);
 		/* repaint all the pixels in the surface, change size to only repaint changed area*/
@@ -107,6 +107,7 @@ int main(int argc, char const *argv[])
 	sigaction(SIGINT, &sigint, NULL);
 	
 	for(;running && ret != -1;) {
+		term->ui->window_rectangle->width += 1;
 		ret = wl_display_dispatch(term->ui->display);
 	}
 

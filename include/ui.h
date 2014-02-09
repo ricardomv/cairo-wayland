@@ -5,6 +5,8 @@ struct rectangle {
 	int32_t height;
 };
 
+struct xkb;
+
 struct wayland_t {
 	struct wl_display *display;
 	struct wl_output *output;
@@ -19,6 +21,8 @@ struct wayland_t {
 	struct wl_shell_surface *shell_surface;
 	struct wl_callback *callback;
 	struct rectangle *window_rectangle;
+	struct xkb *xkb;
+	char *buffer;
 
 	cairo_surface_t *cairo_surface;
 };

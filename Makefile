@@ -3,12 +3,12 @@ BINNAME   = wl_term
 # compiler
 CC       = gcc
 # compiling flags
-CFLAGS   = -Wall -I$(INCDIR)
+CFLAGS   = -Wall -I$(INCDIR) -g
 
 # linker
 LINKER   = gcc -o
 # linking flags here
-LFLAGS   = -lm -lwayland-client -lcairo
+LFLAGS   = -lm -lwayland-client -lcairo -lxkbcommon
 
 SRCDIR   = src
 OBJDIR   = obj

@@ -1,14 +1,26 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/mman.h>
+#include <unistd.h>
 
 #include <wayland-client.h>
 #include <wayland-client-protocol.h>
 
 #include <cairo/cairo.h>
 
+#include <xkbcommon/xkbcommon.h>
+
 #include "util.h"
 #include "ui.h"
+
+struct xkb{
+	struct xkb_context *ctx;
+	struct xkb_keymap *keymap;
+	struct xkb_state *state;
+	xkb_mod_index_t ctrl, alt, shift, logo;
+	unsigned int mods;
+};
 
 void
 registry_handle_global(void *data, struct wl_registry *registry, uint32_t name,
@@ -42,7 +54,30 @@ static const struct wl_registry_listener registry_listener = {
 static void
 keyboard_handle_keymap(void *data, struct wl_keyboard *keyboard,
 		       uint32_t format, int fd, uint32_t size){
-	//struct wayland_t *ui = data;
+	struct wayland_t *ui = data;
+	char *string;
+	if (format != WL_KEYBOARD_KEYMAP_FORMAT_XKB_V1) {
+		close(fd);
+		return;
+	}
+
+	string = mmap(NULL, size, PROT_READ, MAP_SHARED, fd, 0);
+	if (string == MAP_FAILED) {
+		close(fd);
+		return;
+	}
+
+	ui->xkb->keymap = xkb_keymap_new_from_string(ui->xkb->ctx, string,
+						   XKB_KEYMAP_FORMAT_TEXT_V1, 0);
+	munmap(string, size);
+	close(fd);
+
+	ui->xkb->state = xkb_state_new(ui->xkb->keymap);
+
+	ui->xkb->ctrl = xkb_keymap_mod_get_index(ui->xkb->keymap, XKB_MOD_NAME_CTRL);
+	ui->xkb->alt = xkb_keymap_mod_get_index(ui->xkb->keymap, XKB_MOD_NAME_ALT);
+	ui->xkb->shift = xkb_keymap_mod_get_index(ui->xkb->keymap, XKB_MOD_NAME_SHIFT);
+	ui->xkb->logo = xkb_keymap_mod_get_index(ui->xkb->keymap, XKB_MOD_NAME_LOGO);
 }
 
 static void
@@ -62,7 +97,15 @@ static void
 keyboard_handle_key(void *data, struct wl_keyboard *keyboard,
 		    uint32_t serial, uint32_t time, uint32_t key,
 		    uint32_t state_w){
-	//struct wayland_t *ui = data;
+	xkb_keysym_t ksym;
+	struct wayland_t *ui = data;
+	char new_char[2] = " \0";
+
+	ksym = xkb_state_key_get_one_sym(ui->xkb->state, key + 8);
+	if (state_w == WL_KEYBOARD_KEY_STATE_PRESSED && ksym > 'A' && ksym < 'z') {
+		new_char[0] = ksym;
+		strcat(ui->buffer,new_char);
+	}
 }
 
 static void
@@ -177,6 +220,10 @@ init_ui(void) {
 	ui->keyboard = wl_seat_get_keyboard(ui->seat);
 	wl_keyboard_add_listener(ui->keyboard, &keyboard_listener, ui);
 
+	ui->xkb = xzalloc(sizeof *ui->xkb);
+	ui->xkb->ctx = xkb_context_new(0);
+	ui->buffer = xzalloc(sizeof *ui->buffer*50);
+
 	ui->pointer = wl_seat_get_pointer(ui->seat);
 	wl_pointer_add_listener(ui->pointer, &pointer_listener, ui);
 
@@ -204,6 +251,9 @@ exit_ui(struct wayland_t *ui){
 	wl_compositor_destroy(ui->compositor);
 	wl_registry_destroy(ui->registry);
 	wl_keyboard_destroy(ui->keyboard);
+	free(ui->xkb->ctx); /* FIXME: is this the right thing to do? */
+	free(ui->xkb->state); /* again */
+	free(ui->xkb);
 	wl_pointer_destroy(ui->pointer);
 	wl_surface_destroy(ui->surface);
 	wl_shell_surface_destroy(ui->shell_surface);
