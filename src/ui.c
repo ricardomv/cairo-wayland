@@ -14,6 +14,13 @@
 #include "util.h"
 #include "ui.h"
 
+#define MOD_MASK_ANY	UINT_MAX
+#define MOD_MASK_NONE	0
+#define MOD_MASK_CTRL	(1<<0)
+#define MOD_MASK_ALT	(1<<1)
+#define MOD_MASK_SHIFT	(1<<2)
+#define MOD_MASK_LOGO	(1<<3)
+
 struct xkb{
 	struct xkb_context *ctx;
 	struct xkb_keymap *keymap;
@@ -93,12 +100,14 @@ keyboard_handle_leave(void *data, struct wl_keyboard *keyboard,
 	//struct wayland_t *ui = data;
 }
 
+int running;
+
 static void
 keyboard_handle_key(void *data, struct wl_keyboard *keyboard,
 		    uint32_t serial, uint32_t time, uint32_t key,
 		    uint32_t state_w){
-	xkb_keysym_t ksym;
 	struct wayland_t *ui = data;
+	xkb_keysym_t ksym;
 	char buf[32];
 	size_t len;
 
@@ -107,8 +116,13 @@ keyboard_handle_key(void *data, struct wl_keyboard *keyboard,
 	if (len > 0)
 	    len--;
 
-	if (state_w == WL_KEYBOARD_KEY_STATE_PRESSED) {
-		strcat(ui->buffer,buf);
+	if (state_w == WL_KEYBOARD_KEY_STATE_PRESSED && len != 0) {
+		if (buf[0] == 'c' && ui->xkb->mods & MOD_MASK_CTRL)
+			running = 0;
+		if (buf[0] == 8) /* handle backspace */
+			ui->buffer[strlen(ui->buffer)-1] = '\0';
+		else
+			strcat(ui->buffer,buf);
 	}
 }
 
@@ -117,7 +131,22 @@ keyboard_handle_modifiers(void *data, struct wl_keyboard *keyboard,
 			  uint32_t serial, uint32_t mods_depressed,
 			  uint32_t mods_latched, uint32_t mods_locked,
 			  uint32_t group){
-	//struct wayland_t *ui = data;
+	struct wayland_t *ui = data;
+	xkb_mod_mask_t mod_mask;
+
+	xkb_state_update_mask(ui->xkb->state, mods_depressed, mods_latched, mods_locked, group, 0, 0);
+
+	mod_mask = xkb_state_serialize_mods(ui->xkb->state, XKB_STATE_MODS_EFFECTIVE);
+	ui->xkb->mods = MOD_MASK_NONE;
+
+	if (mod_mask & (1 << ui->xkb->ctrl))
+		ui->xkb->mods |= MOD_MASK_CTRL;
+	if (mod_mask & (1 << ui->xkb->alt))
+		ui->xkb->mods |= MOD_MASK_ALT;
+	if (mod_mask & (1 << ui->xkb->shift))
+		ui->xkb->mods |= MOD_MASK_SHIFT;
+	if (mod_mask & (1 << ui->xkb->logo))
+		ui->xkb->mods |= MOD_MASK_LOGO;
 }
 
 static const struct wl_keyboard_listener keyboard_listener = {
