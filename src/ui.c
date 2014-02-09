@@ -29,6 +29,36 @@ struct xkb{
 	unsigned int mods;
 };
 
+struct font *
+init_font(void){
+	struct font *font;
+	font = xzalloc(sizeof *font);
+	font->family = strdup("Terminus");
+	font->slant = CAIRO_FONT_SLANT_NORMAL;
+	font->weight = CAIRO_FONT_WEIGHT_NORMAL;
+	font->size = 14;
+	return font;
+}
+
+
+struct color_scheme *
+init_color_scheme(void){
+	struct color_scheme *color;
+	color = xzalloc(sizeof *color);
+
+	color->bg_color.r = 0;
+	color->bg_color.g = 0;
+	color->bg_color.b = 0;
+	color->bg_color.a = 0.8;
+	
+	color->font_color.r = 0;
+	color->font_color.g = 1;
+	color->font_color.b = 0;
+	color->font_color.a = 1;
+
+	return color;
+}
+
 void
 registry_handle_global(void *data, struct wl_registry *registry, uint32_t name,
 	  const char *interface, uint32_t version) {
@@ -242,6 +272,8 @@ init_ui(void) {
 	struct wayland_t *ui;
 
 	ui = xzalloc(sizeof *ui);
+	ui->font = init_font();
+	ui->color_scheme = init_color_scheme();
 
 	ui->display = fail_on_null(wl_display_connect(NULL));
 
