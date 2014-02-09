@@ -46,15 +46,17 @@ init_color_scheme(void){
 	struct color_scheme *color;
 	color = xzalloc(sizeof *color);
 
-	color->bg_color.r = 0;
-	color->bg_color.g = 0;
-	color->bg_color.b = 0;
-	color->bg_color.a = 0.8;
+	color->bg_color = xzalloc(sizeof *color->bg_color);
+	color->bg_color->r = 0;
+	color->bg_color->g = 0;
+	color->bg_color->b = 0;
+	color->bg_color->a = 0.8;
 	
-	color->font_color.r = 0;
-	color->font_color.g = 1;
-	color->font_color.b = 0;
-	color->font_color.a = 1;
+	color->font_color = xzalloc(sizeof *color->font_color);
+	color->font_color->r = 0;
+	color->font_color->g = 1;
+	color->font_color->b = 0;
+	color->font_color->a = 1;
 
 	return color;
 }
@@ -307,6 +309,10 @@ init_ui(void) {
 
 void
 exit_ui(struct wayland_t *ui){
+	free(ui->font);
+	free(ui->color_scheme->bg_color);
+	free(ui->color_scheme->font_color);
+	free(ui->color_scheme);
 	if (ui->shell)
 		wl_shell_destroy(ui->shell);
 	if (ui->shm)

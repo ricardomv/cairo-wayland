@@ -10,8 +10,8 @@ struct xkb;
 struct color { double r, g, b, a; };
 
 struct color_scheme{
-	struct color bg_color;
-	struct color font_color;
+	struct color *bg_color;
+	struct color *font_color;
 };
 
 struct font{
