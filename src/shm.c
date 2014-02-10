@@ -138,13 +138,6 @@ shm_pool_destroy(struct shm_pool *pool)
 	free(pool);
 }
 
-/* Start allocating from the beginning of the pool again */
-static void
-shm_pool_reset(struct shm_pool *pool)
-{
-	pool->used = 0;
-}
-
 static int
 data_length_for_shm_surface(struct rectangle *rect)
 {
@@ -202,28 +195,13 @@ display_create_shm_surface_from_pool(void *none,
 	return surface;
 }
 
-static cairo_surface_t *
+cairo_surface_t *
 display_create_shm_surface(struct wl_shm *shm,
-			   struct rectangle *rectangle, uint32_t flags,
-			   struct shm_pool *alternate_pool,
-			   struct shm_surface_data **data_ret)
+			   struct rectangle *rectangle, uint32_t flags)
 {
 	struct shm_surface_data *data;
 	struct shm_pool *pool;
 	cairo_surface_t *surface;
-
-	if (alternate_pool) {
-		shm_pool_reset(alternate_pool);
-		surface = display_create_shm_surface_from_pool(shm,
-							       rectangle,
-							       flags,
-							       alternate_pool);
-		if (surface) {
-			data = cairo_surface_get_user_data(surface,
-							   &shm_surface_data_key);
-			goto out;
-		}
-	}
 
 	pool = shm_pool_create(shm,
 			       data_length_for_shm_surface(rectangle));
@@ -243,33 +221,5 @@ display_create_shm_surface(struct wl_shm *shm,
 	data = cairo_surface_get_user_data(surface, &shm_surface_data_key);
 	data->pool = pool;
 
-out:
-	if (data_ret)
-		*data_ret = data;
-
 	return surface;
-}
-
-static int
-check_size(struct rectangle *rect)
-{
-	if (rect->width && rect->height)
-		return 0;
-
-	fprintf(stderr, "tried to create surface of "
-		"width: %d, height: %d\n", rect->width, rect->height);
-	return -1;
-}
-
-cairo_surface_t *
-display_create_surface(struct wl_shm *shm,
-		       struct wl_surface *surface,
-		       struct rectangle *rectangle,
-		       uint32_t flags)
-{
-	if (check_size(rectangle) < 0)
-		return NULL;
-
-	return display_create_shm_surface(shm, rectangle, flags,
-					  NULL, NULL);
 }

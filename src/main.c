@@ -93,7 +93,7 @@ int main(int argc, char const *argv[])
 	term->ui->window_rectangle->width = 200;
 	term->ui->window_rectangle->height = 200;
 
-	term->ui->cairo_surface = display_create_surface(term->ui->shm, term->ui->surface, term->ui->window_rectangle,2);
+	term->ui->cairo_surface = display_create_shm_surface(term->ui->shm, term->ui->window_rectangle,2);
 	
 
 	redraw(term->ui, NULL, 0);
