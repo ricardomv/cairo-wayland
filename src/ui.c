@@ -12,7 +12,9 @@
 #include <xkbcommon/xkbcommon.h>
 
 #include "util.h"
+#include "shm.h"
 #include "ui.h"
+#include "draw.h"
 
 #define MOD_MASK_ANY	UINT_MAX
 #define MOD_MASK_NONE	0
@@ -269,6 +271,31 @@ static const struct wl_shell_surface_listener shell_surface_listener = {
 	handle_popup_done
 };
 
+static const struct wl_callback_listener frame_listener;
+
+static void
+redraw(void *data, struct wl_callback *callback, uint32_t time){
+	struct wayland_t *ui = data;
+
+	draw_window(ui,ui->cairo_surface);
+	
+	wl_surface_attach(ui->surface,display_get_buffer_for_surface(ui->display,ui->cairo_surface),0,0);
+		/* repaint all the pixels in the surface, change size to only repaint changed area*/
+	wl_surface_damage(ui->surface, ui->window_rectangle->x, 
+					ui->window_rectangle->y, 
+					ui->window_rectangle->width, 
+					ui->window_rectangle->height);
+
+	ui->callback = wl_surface_frame(ui->surface);
+	wl_callback_add_listener(ui->callback, &frame_listener, ui);
+
+	wl_surface_commit(ui->surface);
+}
+
+static const struct wl_callback_listener frame_listener = {
+	redraw
+};
+
 struct wayland_t *
 init_ui(void) {
 	struct wayland_t *ui;
@@ -303,6 +330,16 @@ init_ui(void) {
 
 	wl_shell_surface_set_title(ui->shell_surface,"shm surface");
 	wl_shell_surface_set_toplevel(ui->shell_surface);
+
+	ui->window_rectangle = xzalloc(sizeof *ui->window_rectangle);
+	ui->window_rectangle->x = 0;
+	ui->window_rectangle->y = 0;
+	ui->window_rectangle->width = 400;
+	ui->window_rectangle->height = 300;
+
+	ui->cairo_surface = display_create_shm_surface(ui->shm, ui->window_rectangle,2);
+
+	redraw(ui, NULL, 0);
 
 	return ui;
 }
