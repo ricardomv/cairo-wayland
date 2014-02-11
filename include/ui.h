@@ -33,11 +33,12 @@ struct wayland_t {
 	struct wl_shell *shell;
 	struct wl_surface *surface;
 	struct wl_shell_surface *shell_surface;
-	struct wl_callback *callback;
 	struct rectangle *window_rectangle;
 	struct xkb *xkb;
 	struct color_scheme *color_scheme;
 	char *buffer;
+
+	int need_redraw;
 
 	struct font *font;
 
@@ -48,3 +49,4 @@ struct wayland_t {
 struct wayland_t *init_ui(void);
 void exit_ui(struct wayland_t *ui);
 void ui_set_font_from_config(void);
+void redraw(struct wayland_t *ui);

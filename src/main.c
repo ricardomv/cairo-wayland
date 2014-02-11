@@ -36,6 +36,8 @@ int main(int argc, char const *argv[])
 	sigaction(SIGINT, &sigint, NULL);
 	
 	for(;running && ret != -1;) {
+		if (term->ui->need_redraw)
+			redraw(term->ui);
 		ret = wl_display_dispatch(term->ui->display);
 	}
 

@@ -31,6 +31,9 @@ struct xkb{
 	unsigned int mods;
 };
 
+void
+redraw(struct wayland_t *ui);
+
 struct font *
 init_font(void){
 	struct font *font;
@@ -157,6 +160,7 @@ keyboard_handle_key(void *data, struct wl_keyboard *keyboard,
 			ui->buffer[strlen(ui->buffer)-1] = '\0';
 		else
 			strcat(ui->buffer,buf);
+		ui->need_redraw = 1;
 	}
 }
 
@@ -271,12 +275,8 @@ static const struct wl_shell_surface_listener shell_surface_listener = {
 	handle_popup_done
 };
 
-static const struct wl_callback_listener frame_listener;
-
-static void
-redraw(void *data, struct wl_callback *callback, uint32_t time){
-	struct wayland_t *ui = data;
-
+void
+redraw(struct wayland_t *ui){
 	draw_window(ui,ui->cairo_surface);
 	
 	wl_surface_attach(ui->surface,display_get_buffer_for_surface(ui->display,ui->cairo_surface),0,0);
@@ -286,15 +286,9 @@ redraw(void *data, struct wl_callback *callback, uint32_t time){
 					ui->window_rectangle->width, 
 					ui->window_rectangle->height);
 
-	ui->callback = wl_surface_frame(ui->surface);
-	wl_callback_add_listener(ui->callback, &frame_listener, ui);
-
 	wl_surface_commit(ui->surface);
+	ui->need_redraw = 0;
 }
-
-static const struct wl_callback_listener frame_listener = {
-	redraw
-};
 
 struct wayland_t *
 init_ui(void) {
@@ -339,7 +333,7 @@ init_ui(void) {
 
 	ui->cairo_surface = display_create_shm_surface(ui->shm, ui->window_rectangle,2);
 
-	redraw(ui, NULL, 0);
+	ui->need_redraw = 1;
 
 	return ui;
 }
