@@ -83,6 +83,9 @@ registry_handle_global(void *data, struct wl_registry *registry, uint32_t name,
 					   &wl_seat_interface, 1);
 	 } else if(strcmp(interface, "wl_output") == 0) {
 	 	ui->output = wl_registry_bind(registry, name, &wl_output_interface, 1);
+	 } else if (strcmp(interface, "wl_data_device_manager") == 0) {
+		ui->data_device_manager = wl_registry_bind(registry, name,
+					 &wl_data_device_manager_interface, 1);
 	}
 }
 
@@ -275,6 +278,66 @@ static const struct wl_shell_surface_listener shell_surface_listener = {
 	handle_popup_done
 };
 
+static void
+data_offer_offer(void *data, struct wl_data_offer *wl_data_offer, const char *type)
+{
+	//struct wayland_t *ui = data;
+	printf("%s\n", type);
+}
+
+static const struct wl_data_offer_listener data_offer_listener = {
+	data_offer_offer,
+};
+
+static void
+data_device_data_offer(void *data,
+		       struct wl_data_device *data_device,
+		       struct wl_data_offer *_offer){
+	struct wayland_t *ui = data;
+	wl_data_offer_add_listener(_offer,
+				   &data_offer_listener, ui);
+}
+
+static void
+data_device_enter(void *data, struct wl_data_device *data_device,
+		  uint32_t serial, struct wl_surface *surface,
+		  wl_fixed_t x_w, wl_fixed_t y_w,
+		  struct wl_data_offer *offer)
+{
+}
+
+static void
+data_device_leave(void *data, struct wl_data_device *data_device)
+{
+}
+
+static void
+data_device_motion(void *data, struct wl_data_device *data_device,
+		   uint32_t time, wl_fixed_t x_w, wl_fixed_t y_w)
+{
+}
+
+static void
+data_device_drop(void *data, struct wl_data_device *data_device)
+{
+}
+
+static void
+data_device_selection(void *data,
+		      struct wl_data_device *wl_data_device,
+		      struct wl_data_offer *offer)
+{
+}
+
+static const struct wl_data_device_listener data_device_listener = {
+	data_device_data_offer,
+	data_device_enter,
+	data_device_leave,
+	data_device_motion,
+	data_device_drop,
+	data_device_selection
+};
+
 void
 redraw(struct wayland_t *ui){
 	draw_window(ui,ui->cairo_surface);
@@ -325,6 +388,10 @@ init_ui(void) {
 	wl_shell_surface_set_title(ui->shell_surface,"shm surface");
 	wl_shell_surface_set_toplevel(ui->shell_surface);
 
+	ui->data_device = wl_data_device_manager_get_data_device(ui->data_device_manager, ui->seat);
+	wl_data_device_add_listener(ui->data_device, &data_device_listener,
+				    ui);
+
 	ui->window_rectangle = xzalloc(sizeof *ui->window_rectangle);
 	ui->window_rectangle->x = 0;
 	ui->window_rectangle->y = 0;
@@ -357,6 +424,7 @@ exit_ui(struct wayland_t *ui){
 	free(ui->xkb->state); /* again */
 	free(ui->xkb);
 	wl_pointer_destroy(ui->pointer);
+	wl_data_device_manager_destroy(ui->data_device_manager);
 	wl_surface_destroy(ui->surface);
 	wl_shell_surface_destroy(ui->shell_surface);
 

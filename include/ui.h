@@ -31,6 +31,8 @@ struct wayland_t {
 	struct wl_keyboard *keyboard;
 	struct wl_pointer *pointer;
 	struct wl_shell *shell;
+	struct wl_data_device_manager *data_device_manager;
+	struct wl_data_device *data_device;
 	struct wl_surface *surface;
 	struct wl_shell_surface *shell_surface;
 	struct rectangle *window_rectangle;
