@@ -25,7 +25,7 @@ $(BINDIR)/$(BINNAME): $(OBJECTS)
 	@$(LINKER) $@ $(LFLAGS) $(OBJECTS)
 	@echo "Linking of "$@" complete!"
 
-$(OBJECTS): $(OBJDIR)/%.o : $(SRCDIR)/%.c
+$(OBJECTS): $(OBJDIR)/%.o : $(SRCDIR)/%.c $(INCLUDES)
 	@$(CC) $(CFLAGS) -c $< -o $@
 	@echo "Compiled "$<""
 
@@ -34,7 +34,7 @@ clean:
 	@$(rm) $(OBJECTS)
 	@echo "Cleanup complete!"
 
-.PHONEY: remove
+.PHONY: remove
 remove: clean
 	@$(rm) $(BINDIR)/$(BINNAME)
 	@echo "Executable removed!"
