@@ -33,7 +33,8 @@ struct xkb{
 
 void
 redraw(struct wayland_t *ui);
-
+void
+ui_resize(struct wayland_t *ui, uint32_t width, uint32_t height);
 struct font *
 init_font(void){
 	struct font *font;
@@ -265,6 +266,8 @@ static void
 handle_configure(void *data, struct wl_shell_surface *shell_surface,
 		 uint32_t edges, int32_t width, int32_t height)
 {
+	struct wayland_t *ui = data;
+	ui_resize(ui,width,height);
 }
 
 static void
@@ -339,10 +342,24 @@ static const struct wl_data_device_listener data_device_listener = {
 };
 
 void
+ui_resize(struct wayland_t *ui, uint32_t width, uint32_t height){
+	ui->window_rectangle->x = 0;
+	ui->window_rectangle->y = 0;
+	ui->window_rectangle->width = width;
+	ui->window_rectangle->height = height;
+	/* cairo will free all the memory for us */
+	cairo_surface_destroy(ui->cairo_surface);
+	ui->cairo_surface = create_shm_surface(ui->shm, ui->window_rectangle,2);
+	/* Don't  redraw if we dont have a surface*/
+	if (ui->cairo_surface)
+		ui->need_redraw = 1;
+}
+
+void
 redraw(struct wayland_t *ui){
 	draw_window(ui,ui->cairo_surface);
 	
-	wl_surface_attach(ui->surface,display_get_buffer_for_surface(ui->display,ui->cairo_surface),0,0);
+	wl_surface_attach(ui->surface,get_buffer_from_cairo_surface(ui->cairo_surface),0,0);
 		/* repaint all the pixels in the surface, change size to only repaint changed area*/
 	wl_surface_damage(ui->surface, ui->window_rectangle->x, 
 					ui->window_rectangle->y, 
@@ -398,7 +415,7 @@ init_ui(void) {
 	ui->window_rectangle->width = 400;
 	ui->window_rectangle->height = 300;
 
-	ui->cairo_surface = display_create_shm_surface(ui->shm, ui->window_rectangle,2);
+	ui->cairo_surface = create_shm_surface(ui->shm, ui->window_rectangle,2);
 
 	ui->need_redraw = 1;
 
@@ -411,6 +428,7 @@ exit_ui(struct wayland_t *ui){
 	free(ui->color_scheme->bg_color);
 	free(ui->color_scheme->font_color);
 	free(ui->color_scheme);
+	cairo_surface_destroy(ui->cairo_surface);
 	if (ui->shell)
 		wl_shell_destroy(ui->shell);
 	if (ui->shm)

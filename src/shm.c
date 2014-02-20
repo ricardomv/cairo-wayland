@@ -45,8 +45,7 @@ struct rectangle {
 static const cairo_user_data_key_t shm_surface_data_key;
 
 struct wl_buffer *
-display_get_buffer_for_surface(struct wl_display *display,
-			       cairo_surface_t *surface)
+get_buffer_from_cairo_surface(cairo_surface_t *surface)
 {
 	struct shm_surface_data *data;
 
@@ -62,7 +61,6 @@ static void
 shm_surface_data_destroy(void *p)
 {
 	struct shm_surface_data *data = p;
-
 	wl_buffer_destroy(data->buffer);
 	if (data->pool)
 		shm_pool_destroy(data->pool);
@@ -149,7 +147,7 @@ data_length_for_shm_surface(struct rectangle *rect)
 }
 
 static cairo_surface_t *
-display_create_shm_surface_from_pool(void *none,
+create_shm_surface_from_pool(void *none,
 				     struct rectangle *rectangle,
 				     uint32_t flags, struct shm_pool *pool)
 {
@@ -196,7 +194,7 @@ display_create_shm_surface_from_pool(void *none,
 }
 
 cairo_surface_t *
-display_create_shm_surface(struct wl_shm *shm,
+create_shm_surface(struct wl_shm *shm,
 			   struct rectangle *rectangle, uint32_t flags)
 {
 	struct shm_surface_data *data;
@@ -209,7 +207,7 @@ display_create_shm_surface(struct wl_shm *shm,
 		return NULL;
 
 	surface =
-		display_create_shm_surface_from_pool(shm, rectangle,
+		create_shm_surface_from_pool(shm, rectangle,
 						     flags, pool);
 
 	if (!surface) {
