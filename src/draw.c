@@ -35,7 +35,12 @@ draw_window(struct wayland_t *ui,cairo_surface_t *surface){
 	cairo_move_to(cr,0,60);
 	sprintf(str,"%d",++ndraw);
 	cairo_show_text(cr,str);
-	cairo_set_antialias(cr,CAIRO_ANTIALIAS_FAST);
 
+	cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
+	cairo_set_source_surface (cr, ui->icon->surface, ui->icon->x, ui->icon->y);
+	cairo_rectangle (cr, ui->icon->x, ui->icon->y, ui->icon->width, ui->icon->height);
+	cairo_fill (cr);
+
+	cairo_set_antialias(cr,CAIRO_ANTIALIAS_FAST);
 	cairo_destroy(cr);
 }

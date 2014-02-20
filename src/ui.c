@@ -215,13 +215,27 @@ pointer_handle_leave(void *data, struct wl_pointer *pointer,
 static void
 pointer_handle_motion(void *data, struct wl_pointer *pointer,
 		      uint32_t time, wl_fixed_t sx_w, wl_fixed_t sy_w){
-	//struct wayland_t *ui = data;
+	struct wayland_t *ui = data;
+	float sx = wl_fixed_to_double(sx_w);
+	float sy = wl_fixed_to_double(sy_w);
+
+	if (ui->pressed)
+	{
+		ui->icon->x = sx;ui->icon->y = sy;
+		ui->need_redraw=1;
+	}
 }
 
 static void
 pointer_handle_button(void *data, struct wl_pointer *pointer, uint32_t serial,
 		      uint32_t time, uint32_t button, uint32_t state_w){
-	//struct wayland_t *ui = data;
+	struct wayland_t *ui = data;
+	enum wl_pointer_button_state state = state_w;
+
+	if(state == WL_POINTER_BUTTON_STATE_PRESSED)
+		ui->pressed = 1;
+	else
+		ui->pressed = 0;
 }
 
 static void
@@ -417,6 +431,11 @@ init_ui(void) {
 
 	ui->cairo_surface = create_shm_surface(ui->shm, ui->window_rectangle,2);
 
+	ui->icon = xzalloc(sizeof *ui->icon);
+	ui->icon->width = 48; ui->icon->height = 48;
+	ui->icon->x = ui->window_rectangle->width - ui->icon->width;ui->icon->y = 0;
+	ui->icon->surface = cairo_image_surface_create_from_png("/usr/share/icons/gnome/48x48/places/folder.png");
+
 	ui->need_redraw = 1;
 
 	return ui;
@@ -429,6 +448,8 @@ exit_ui(struct wayland_t *ui){
 	free(ui->color_scheme->font_color);
 	free(ui->color_scheme);
 	cairo_surface_destroy(ui->cairo_surface);
+	cairo_surface_destroy(ui->icon->surface);
+	free(ui->icon);
 	if (ui->shell)
 		wl_shell_destroy(ui->shell);
 	if (ui->shm)

@@ -21,6 +21,13 @@ struct font{
 	double size;
 };
 
+struct icon{
+	char *filename;
+	int x, y;
+	int width, height;
+	cairo_surface_t *surface;
+};
+
 struct wayland_t {
 	struct wl_display *display;
 	struct wl_output *output;
@@ -45,8 +52,9 @@ struct wayland_t {
 	struct font *font;
 
 	cairo_surface_t *cairo_surface;
+	struct icon *icon;
+	int pressed;
 };
-
 
 struct wayland_t *init_ui(void);
 void exit_ui(struct wayland_t *ui);
