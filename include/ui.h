@@ -28,6 +28,10 @@ struct icon{
 	cairo_surface_t *surface;
 };
 
+/* TODO remove this from here*/
+struct egl_window_surface;
+struct egl_ui;
+
 struct wayland_t {
 	struct wl_display *display;
 	struct wl_output *output;
@@ -41,6 +45,13 @@ struct wayland_t {
 	struct wl_data_device_manager *data_device_manager;
 	struct wl_data_device *data_device;
 	struct wl_surface *surface;
+
+	int backend;
+	struct egl_ui *egl;
+	struct egl_window *egl_surface;
+
+	struct shm_window *shm_surface;
+
 	struct wl_shell_surface *shell_surface;
 	struct rectangle *window_rectangle;
 	struct xkb *xkb;
@@ -51,12 +62,14 @@ struct wayland_t {
 
 	struct font *font;
 
-	cairo_surface_t *cairo_surface;
 	struct icon *icon;
 	int pressed;
 };
 
+#define SHM_BACKEND 1
+#define EGL_BACKEND 2
+
+#define BACKEND EGL_BACKEND
+
 struct wayland_t *init_ui(void);
 void exit_ui(struct wayland_t *ui);
-void ui_set_font_from_config(void);
-void redraw(struct wayland_t *ui);

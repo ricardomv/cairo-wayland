@@ -12,9 +12,13 @@
 #include <xkbcommon/xkbcommon.h>
 
 #include "util.h"
-#include "shm.h"
 #include "ui.h"
-#include "draw.h"
+
+#if BACKEND == SHM_BACKEND
+	#include "shm.h"
+#elif BACKEND == EGL_BACKEND
+	#include "egl.h"
+#endif
 
 #define MOD_MASK_ANY	UINT_MAX
 #define MOD_MASK_NONE	0
@@ -31,10 +35,6 @@ struct xkb{
 	unsigned int mods;
 };
 
-void
-redraw(struct wayland_t *ui);
-void
-ui_resize(struct wayland_t *ui, uint32_t width, uint32_t height);
 struct font *
 init_font(void){
 	struct font *font;
@@ -158,7 +158,7 @@ keyboard_handle_key(void *data, struct wl_keyboard *keyboard,
 	    len--;
 
 	if (state_w == WL_KEYBOARD_KEY_STATE_PRESSED && len != 0) {
-		if (buf[0] == 'c' && ui->xkb->mods & MOD_MASK_CTRL)
+		if (buf[0] == 'q')
 			running = 0;
 		if (buf[0] == 8) /* handle backspace */
 			ui->buffer[strlen(ui->buffer)-1] = '\0';
@@ -281,7 +281,12 @@ handle_configure(void *data, struct wl_shell_surface *shell_surface,
 		 uint32_t edges, int32_t width, int32_t height)
 {
 	struct wayland_t *ui = data;
-	ui_resize(ui,width,height);
+	ui->window_rectangle->x = 0;
+	ui->window_rectangle->y = 0;
+	ui->window_rectangle->width = width;
+	ui->window_rectangle->height = height;
+	ui_resize(ui,edges,width,height);
+	ui->need_redraw = 1;
 }
 
 static void
@@ -355,35 +360,6 @@ static const struct wl_data_device_listener data_device_listener = {
 	data_device_selection
 };
 
-void
-ui_resize(struct wayland_t *ui, uint32_t width, uint32_t height){
-	ui->window_rectangle->x = 0;
-	ui->window_rectangle->y = 0;
-	ui->window_rectangle->width = width;
-	ui->window_rectangle->height = height;
-	/* cairo will free all the memory for us */
-	cairo_surface_destroy(ui->cairo_surface);
-	ui->cairo_surface = create_shm_surface(ui->shm, ui->window_rectangle,2);
-	/* Don't  redraw if we dont have a surface*/
-	if (ui->cairo_surface)
-		ui->need_redraw = 1;
-}
-
-void
-redraw(struct wayland_t *ui){
-	draw_window(ui,ui->cairo_surface);
-	
-	wl_surface_attach(ui->surface,get_buffer_from_cairo_surface(ui->cairo_surface),0,0);
-		/* repaint all the pixels in the surface, change size to only repaint changed area*/
-	wl_surface_damage(ui->surface, ui->window_rectangle->x, 
-					ui->window_rectangle->y, 
-					ui->window_rectangle->width, 
-					ui->window_rectangle->height);
-
-	wl_surface_commit(ui->surface);
-	ui->need_redraw = 0;
-}
-
 struct wayland_t *
 init_ui(void) {
 	struct wayland_t *ui;
@@ -429,7 +405,16 @@ init_ui(void) {
 	ui->window_rectangle->width = 400;
 	ui->window_rectangle->height = 300;
 
-	ui->cairo_surface = create_shm_surface(ui->shm, ui->window_rectangle,2);
+	#if BACKEND == SHM_BACKEND
+		ui->shm_surface = create_shm_surface(ui->shm, ui->window_rectangle,2);
+	#elif BACKEND == EGL_BACKEND
+		ui->egl = init_egl(ui);
+		if (!ui->egl){
+			printf("Error: initializing egl\n");
+			return NULL;
+		}
+		ui->egl_surface = create_egl_surface(ui, ui->window_rectangle,2);
+	#endif
 
 	ui->icon = xzalloc(sizeof *ui->icon);
 	ui->icon->width = 48; ui->icon->height = 48;
@@ -447,7 +432,13 @@ exit_ui(struct wayland_t *ui){
 	free(ui->color_scheme->bg_color);
 	free(ui->color_scheme->font_color);
 	free(ui->color_scheme);
-	cairo_surface_destroy(ui->cairo_surface);
+	#if BACKEND == SHM_BACKEND
+		cairo_surface_destroy(ui->shm_surface->cairo_surface);
+		free(ui->egl_surface);
+	#elif BACKEND == EGL_BACKEND
+		cairo_surface_destroy(ui->egl_surface->cairo_surface);
+		free(ui->shm_surface);
+	#endif
 	cairo_surface_destroy(ui->icon->surface);
 	free(ui->icon);
 	if (ui->shell)

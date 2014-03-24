@@ -1,10 +1,13 @@
-struct rectangle;
-struct shm_pool;
-struct shm_surface_data;
+struct shm_window {
+	cairo_surface_t *cairo_surface;
+};
 
-cairo_surface_t *
+struct shm_window *
 create_shm_surface(struct wl_shm *shm,
 			   struct rectangle *rectangle, uint32_t flags);
 
 struct wl_buffer *
 get_buffer_from_cairo_surface(cairo_surface_t *surface);
+
+void ui_resize(struct wayland_t *ui, int edges, int width, int height);
+void ui_redraw(struct wayland_t *ui);

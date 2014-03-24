@@ -8,7 +8,7 @@ CFLAGS   = -Wall -I$(INCDIR) -g
 # linker
 LINKER   = gcc -o
 # linking flags here
-LFLAGS   = -lm -lwayland-client -lcairo -lxkbcommon
+LFLAGS   = -lm -lwayland-client -lwayland-egl -lcairo -lEGL -lxkbcommon
 
 SRCDIR   = src
 OBJDIR   = obj

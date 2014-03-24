@@ -16,6 +16,10 @@
 #include <cairo/cairo.h>
 
 #include "util.h"
+#include "ui.h"
+#include "shm.h"
+#include "draw.h"
+
 #define SURFACE_OPAQUE 0x01
 #define SURFACE_SHM    0x02
 
@@ -33,13 +37,6 @@ struct shm_pool {
 struct shm_surface_data {
 	struct wl_buffer *buffer;
 	struct shm_pool *pool;
-};
-
-struct rectangle {
-	int32_t x;
-	int32_t y;
-	int32_t width;
-	int32_t height;
 };
 
 static const cairo_user_data_key_t shm_surface_data_key;
@@ -193,31 +190,55 @@ create_shm_surface_from_pool(void *none,
 	return surface;
 }
 
-cairo_surface_t *
+struct shm_window *
 create_shm_surface(struct wl_shm *shm,
 			   struct rectangle *rectangle, uint32_t flags)
 {
+	struct shm_window *shm_surface;
 	struct shm_surface_data *data;
 	struct shm_pool *pool;
-	cairo_surface_t *surface;
+
+	shm_surface = malloc(sizeof *shm_surface);
 
 	pool = shm_pool_create(shm,
 			       data_length_for_shm_surface(rectangle));
 	if (!pool)
 		return NULL;
 
-	surface =
+	shm_surface->cairo_surface =
 		create_shm_surface_from_pool(shm, rectangle,
 						     flags, pool);
 
-	if (!surface) {
+	if (!shm_surface->cairo_surface) {
 		shm_pool_destroy(pool);
 		return NULL;
 	}
 
 	/* make sure we destroy the pool when the surface is destroyed */
-	data = cairo_surface_get_user_data(surface, &shm_surface_data_key);
+	data = cairo_surface_get_user_data(shm_surface->cairo_surface, &shm_surface_data_key);
 	data->pool = pool;
 
-	return surface;
+	return shm_surface;
 }
+
+#if BACKEND == SHM_BACKEND
+void
+ui_resize(struct wayland_t *ui, int edges, int width, int height){
+	cairo_surface_destroy(ui->shm_surface->cairo_surface);
+	free(ui->shm_surface);
+	ui->shm_surface = create_shm_surface(ui->shm, ui->window_rectangle,2);
+}
+
+void
+ui_redraw(struct wayland_t *ui){
+	draw_window(ui,ui->shm_surface->cairo_surface);
+	wl_surface_attach(ui->surface,get_buffer_from_cairo_surface(ui->shm_surface->cairo_surface),0,0);
+	/* repaint all the pixels in the surface, change size to only repaint changed area*/
+	wl_surface_damage(ui->surface, ui->window_rectangle->x, 
+					ui->window_rectangle->y, 
+					ui->window_rectangle->width, 
+					ui->window_rectangle->height);
+	wl_surface_commit(ui->surface);
+	ui->need_redraw = 0;
+}
+#endif

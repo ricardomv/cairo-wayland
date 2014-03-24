@@ -9,6 +9,8 @@
 #include "util.h"
 #include "ui.h"
 
+void ui_redraw(struct wayland_t *ui);
+
 struct app_t {
 	struct wayland_t *ui;
 };
@@ -37,7 +39,7 @@ int main(int argc, char const *argv[])
 	
 	for(;running && ret != -1;) {
 		if (term->ui->need_redraw)
-			redraw(term->ui);
+			ui_redraw(term->ui);
 		ret = wl_display_dispatch(term->ui->display);
 	}
 
