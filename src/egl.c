@@ -93,35 +93,7 @@ create_egl_surface(struct wayland_t *ui,
 #if BACKEND == EGL_BACKEND
 void
 ui_resize(struct wayland_t *ui, int edges, int width, int height){
-	int32_t dx = 0, dy = 0, old_width, old_height;
-	wl_egl_window_get_attached_size(ui->egl_surface->egl_window, &old_width, &old_height);
-	switch (edges) {
-		case WL_SHELL_SURFACE_RESIZE_TOP:
-			dy = old_height - height;
-			break;
-		case WL_SHELL_SURFACE_RESIZE_BOTTOM:
-			break;
-		case WL_SHELL_SURFACE_RESIZE_LEFT:
-			dx = old_width - width;
-			break;
-		case WL_SHELL_SURFACE_RESIZE_RIGHT:
-			break;
-		case WL_SHELL_SURFACE_RESIZE_TOP_LEFT:
-			dx = old_width - width;
-			dy = old_height - height;
-			break;
-		case WL_SHELL_SURFACE_RESIZE_TOP_RIGHT:
-			dy = old_height - height;
-			break;
-		case WL_SHELL_SURFACE_RESIZE_BOTTOM_LEFT:
-			dx = old_width - width;
-			break;
-		case WL_SHELL_SURFACE_RESIZE_BOTTOM_RIGHT:
-			break;
-		default:
-			break;
-	}
-	wl_egl_window_resize(ui->egl_surface->egl_window, width, height, dx, dy);
+	wl_egl_window_resize(ui->egl_surface->egl_window, width, height, 0, 0);
 	cairo_gl_surface_set_size(ui->egl_surface->cairo_surface,width, height);
 }
 
