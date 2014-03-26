@@ -406,14 +406,14 @@ init_ui(void) {
 	ui->window_rectangle->height = 300;
 
 	#if BACKEND == SHM_BACKEND
-		ui->shm_surface = create_shm_surface(ui->shm, ui->window_rectangle,2);
+		ui->shm_surface = create_shm_surface(ui->shm, ui->window_rectangle);
 	#elif BACKEND == EGL_BACKEND
 		ui->egl = init_egl(ui);
 		if (!ui->egl){
 			printf("Error: initializing egl\n");
 			return NULL;
 		}
-		ui->egl_surface = create_egl_surface(ui, ui->window_rectangle,2);
+		ui->egl_surface = create_egl_surface(ui, ui->window_rectangle);
 	#endif
 
 	ui->icon = xzalloc(sizeof *ui->icon);

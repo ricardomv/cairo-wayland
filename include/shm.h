@@ -4,7 +4,7 @@ struct shm_window {
 
 struct shm_window *
 create_shm_surface(struct wl_shm *shm,
-			   struct rectangle *rectangle, uint32_t flags);
+			   struct rectangle *rectangle);
 
 struct wl_buffer *
 get_buffer_from_cairo_surface(cairo_surface_t *surface);

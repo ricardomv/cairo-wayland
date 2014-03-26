@@ -18,6 +18,6 @@ struct egl_ui {
 struct egl_ui *
 init_egl(struct wayland_t *ui);
 struct egl_window *
-create_egl_surface(struct wayland_t *ui, struct rectangle *rectangle, uint32_t flags);
+create_egl_surface(struct wayland_t *ui, struct rectangle *rectangle);
 void ui_resize(struct wayland_t *ui, int edges, int width, int height);
 void ui_redraw(struct wayland_t *ui);

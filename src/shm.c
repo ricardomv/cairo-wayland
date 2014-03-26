@@ -145,8 +145,8 @@ data_length_for_shm_surface(struct rectangle *rect)
 
 static cairo_surface_t *
 create_shm_surface_from_pool(void *none,
-				     struct rectangle *rectangle,
-				     uint32_t flags, struct shm_pool *pool)
+							struct rectangle *rectangle,
+							struct shm_pool *pool)
 {
 	struct shm_surface_data *data;
 	uint32_t format;
@@ -172,10 +172,10 @@ create_shm_surface_from_pool(void *none,
 	}
 
 	surface = cairo_image_surface_create_for_data (map,
-						       cairo_format,
-						       rectangle->width,
-						       rectangle->height,
-						       stride);
+							cairo_format,
+							rectangle->width,
+							rectangle->height,
+							stride);
 
 	cairo_surface_set_user_data(surface, &shm_surface_data_key,
 				    data, shm_surface_data_destroy);
@@ -183,16 +183,16 @@ create_shm_surface_from_pool(void *none,
 	format = WL_SHM_FORMAT_ARGB8888; /*or WL_SHM_FORMAT_RGB565*/
 	
 	data->buffer = wl_shm_pool_create_buffer(pool->pool, offset,
-						 rectangle->width,
-						 rectangle->height,
-						 stride, format);
+							rectangle->width,
+							rectangle->height,
+							stride, format);
 
 	return surface;
 }
 
 struct shm_window *
 create_shm_surface(struct wl_shm *shm,
-			   struct rectangle *rectangle, uint32_t flags)
+			   struct rectangle *rectangle)
 {
 	struct shm_window *shm_surface;
 	struct shm_surface_data *data;
@@ -206,8 +206,7 @@ create_shm_surface(struct wl_shm *shm,
 		return NULL;
 
 	shm_surface->cairo_surface =
-		create_shm_surface_from_pool(shm, rectangle,
-						     flags, pool);
+		create_shm_surface_from_pool(shm, rectangle, pool);
 
 	if (!shm_surface->cairo_surface) {
 		shm_pool_destroy(pool);
@@ -226,7 +225,7 @@ void
 ui_resize(struct wayland_t *ui, int edges, int width, int height){
 	cairo_surface_destroy(ui->shm_surface->cairo_surface);
 	free(ui->shm_surface);
-	ui->shm_surface = create_shm_surface(ui->shm, ui->window_rectangle,2);
+	ui->shm_surface = create_shm_surface(ui->shm, ui->window_rectangle);
 }
 
 void
@@ -235,9 +234,9 @@ ui_redraw(struct wayland_t *ui){
 	wl_surface_attach(ui->surface,get_buffer_from_cairo_surface(ui->shm_surface->cairo_surface),0,0);
 	/* repaint all the pixels in the surface, change size to only repaint changed area*/
 	wl_surface_damage(ui->surface, ui->window_rectangle->x, 
-					ui->window_rectangle->y, 
-					ui->window_rectangle->width, 
-					ui->window_rectangle->height);
+							ui->window_rectangle->y, 
+							ui->window_rectangle->width, 
+							ui->window_rectangle->height);
 	wl_surface_commit(ui->surface);
 	ui->need_redraw = 0;
 }

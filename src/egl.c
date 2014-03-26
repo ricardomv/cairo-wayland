@@ -63,8 +63,7 @@ init_egl(struct wayland_t *ui){
 
 struct egl_window *
 create_egl_surface(struct wayland_t *ui,
-			   struct rectangle *rectangle, uint32_t flags)
-{
+			   struct rectangle *rectangle){
 	struct egl_window *surface;
 	
 	surface = xzalloc(sizeof *surface);
@@ -86,7 +85,6 @@ create_egl_surface(struct wayland_t *ui,
 							surface->egl_surface,
 							rectangle->width,
 							rectangle->height);
-
 	return surface;
 }
 
