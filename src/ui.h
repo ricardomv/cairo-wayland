@@ -66,10 +66,5 @@ struct wayland_t {
 	int pressed;
 };
 
-#define SHM_BACKEND 1
-#define EGL_BACKEND 2
-
-#define BACKEND EGL_BACKEND
-
 struct wayland_t *init_ui(void);
 void exit_ui(struct wayland_t *ui);

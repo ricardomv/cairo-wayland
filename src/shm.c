@@ -15,6 +15,8 @@
 
 #include <cairo/cairo.h>
 
+#include "config.h"
+
 #include "util.h"
 #include "ui.h"
 #include "shm.h"
@@ -220,7 +222,6 @@ create_shm_surface(struct wl_shm *shm,
 	return shm_surface;
 }
 
-#if BACKEND == SHM_BACKEND
 void
 ui_resize(struct wayland_t *ui, int edges, int width, int height){
 	cairo_surface_destroy(ui->shm_surface->cairo_surface);
@@ -240,4 +241,3 @@ ui_redraw(struct wayland_t *ui){
 	wl_surface_commit(ui->surface);
 	ui->need_redraw = 0;
 }
-#endif

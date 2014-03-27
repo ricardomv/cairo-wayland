@@ -5,6 +5,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "config.h"
+
 #include "ui.h"
 #include "egl.h"
 #include "draw.h"
@@ -88,7 +90,6 @@ create_egl_surface(struct wayland_t *ui,
 	return surface;
 }
 
-#if BACKEND == EGL_BACKEND
 void
 ui_resize(struct wayland_t *ui, int edges, int width, int height){
 	wl_egl_window_resize(ui->egl_surface->egl_window, width, height, 0, 0);
@@ -101,4 +102,3 @@ ui_redraw(struct wayland_t *ui){
 	cairo_gl_surface_swapbuffers(ui->egl_surface->cairo_surface);
 	ui->need_redraw = 0;
 }
-#endif

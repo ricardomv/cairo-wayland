@@ -11,13 +11,15 @@
 
 #include <xkbcommon/xkbcommon.h>
 
+#include "config.h"
+
 #include "util.h"
 #include "ui.h"
 
-#if BACKEND == SHM_BACKEND
-	#include "shm.h"
-#elif BACKEND == EGL_BACKEND
+#ifdef HAVE_EGL
 	#include "egl.h"
+#else
+	#include "shm.h"
 #endif
 
 #define MOD_MASK_ANY	UINT_MAX
@@ -405,15 +407,17 @@ init_ui(void) {
 	ui->window_rectangle->width = 400;
 	ui->window_rectangle->height = 300;
 
-	#if BACKEND == SHM_BACKEND
-		ui->shm_surface = create_shm_surface(ui->shm, ui->window_rectangle);
-	#elif BACKEND == EGL_BACKEND
+	#ifdef HAVE_EGL
+		fprintf(stderr, "using egl backend\n");
 		ui->egl = init_egl(ui);
 		if (!ui->egl){
 			printf("Error: initializing egl\n");
 			return NULL;
 		}
 		ui->egl_surface = create_egl_surface(ui, ui->window_rectangle);
+	#else
+		fprintf(stderr, "using shm backend\n");
+		ui->shm_surface = create_shm_surface(ui->shm, ui->window_rectangle);
 	#endif
 
 	ui->icon = xzalloc(sizeof *ui->icon);
@@ -432,11 +436,11 @@ exit_ui(struct wayland_t *ui){
 	free(ui->color_scheme->bg_color);
 	free(ui->color_scheme->font_color);
 	free(ui->color_scheme);
-	#if BACKEND == SHM_BACKEND
-		cairo_surface_destroy(ui->shm_surface->cairo_surface);
-		free(ui->egl_surface);
-	#elif BACKEND == EGL_BACKEND
+	#ifdef HAVE_EGL
 		cairo_surface_destroy(ui->egl_surface->cairo_surface);
+		free(ui->egl_surface);
+	#else
+		cairo_surface_destroy(ui->shm_surface->cairo_surface);
 		free(ui->shm_surface);
 	#endif
 	cairo_surface_destroy(ui->icon->surface);
