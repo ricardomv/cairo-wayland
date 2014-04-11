@@ -59,6 +59,7 @@ struct wayland_t {
 	char *buffer;
 
 	int need_redraw;
+	int fullscreen;
 
 	struct font *font;
 

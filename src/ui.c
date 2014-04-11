@@ -145,6 +145,19 @@ keyboard_handle_leave(void *data, struct wl_keyboard *keyboard,
 
 int running;
 
+void
+toggle_fullscreen(struct wayland_t *ui){
+	ui->fullscreen = !ui->fullscreen;
+	if (ui->fullscreen){
+		wl_shell_surface_set_fullscreen(ui->shell_surface,
+							WL_SHELL_SURFACE_FULLSCREEN_METHOD_DEFAULT,
+							0, NULL);
+	}else{
+		wl_shell_surface_set_toplevel(ui->shell_surface);
+		ui_resize(ui, 0, ui->window_rectangle->width, ui->window_rectangle->height);
+	}
+}
+
 static void
 keyboard_handle_key(void *data, struct wl_keyboard *keyboard,
 		    uint32_t serial, uint32_t time, uint32_t key,
@@ -162,6 +175,11 @@ keyboard_handle_key(void *data, struct wl_keyboard *keyboard,
 	if (state_w == WL_KEYBOARD_KEY_STATE_PRESSED && len != 0) {
 		if (buf[0] == 'q')
 			running = 0;
+		if (buf[0] == 'f'){
+			toggle_fullscreen(ui);
+			if (ui->fullscreen)
+				return;
+		}
 		if (buf[0] == 8) /* handle backspace */
 			ui->buffer[strlen(ui->buffer)-1] = '\0';
 		else
@@ -426,6 +444,7 @@ init_ui(void) {
 	ui->icon->surface = cairo_image_surface_create_from_png("/usr/share/icons/gnome/48x48/places/folder.png");
 
 	ui->need_redraw = 1;
+	ui->fullscreen = 0;
 
 	return ui;
 }
