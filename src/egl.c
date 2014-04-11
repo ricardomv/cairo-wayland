@@ -91,7 +91,7 @@ create_egl_surface(struct wayland_t *ui,
 }
 
 void
-ui_resize(struct wayland_t *ui, int edges, int width, int height){
+ui_resize(struct wayland_t *ui, int width, int height){
 	wl_egl_window_resize(ui->egl_surface->egl_window, width, height, 0, 0);
 	cairo_gl_surface_set_size(ui->egl_surface->cairo_surface,width, height);
 }

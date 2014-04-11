@@ -154,7 +154,7 @@ toggle_fullscreen(struct wayland_t *ui){
 							0, NULL);
 	}else{
 		wl_shell_surface_set_toplevel(ui->shell_surface);
-		ui_resize(ui, 0, ui->window_rectangle->width, ui->window_rectangle->height);
+		ui_resize(ui, ui->window_rectangle->width, ui->window_rectangle->height);
 	}
 }
 
@@ -305,7 +305,7 @@ handle_configure(void *data, struct wl_shell_surface *shell_surface,
 	ui->window_rectangle->y = 0;
 	ui->window_rectangle->width = width;
 	ui->window_rectangle->height = height;
-	ui_resize(ui,edges,width,height);
+	ui_resize(ui,width,height);
 	ui->need_redraw = 1;
 }
 

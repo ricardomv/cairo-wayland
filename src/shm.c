@@ -223,7 +223,7 @@ create_shm_surface(struct wl_shm *shm,
 }
 
 void
-ui_resize(struct wayland_t *ui, int edges, int width, int height){
+ui_resize(struct wayland_t *ui, int width, int height){
 	cairo_surface_destroy(ui->shm_surface->cairo_surface);
 	free(ui->shm_surface);
 	ui->shm_surface = create_shm_surface(ui->shm, ui->window_rectangle);
