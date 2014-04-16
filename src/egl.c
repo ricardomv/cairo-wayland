@@ -9,8 +9,24 @@
 
 #include "ui.h"
 #include "egl.h"
-#include "draw.h"
 #include "util.h"
+
+struct egl_ui {
+	EGLDisplay dpy;
+	EGLConfig argb_config;
+	EGLContext argb_ctx;
+	cairo_device_t *argb_device;
+};
+
+struct window{
+	int width, height;
+
+	struct wl_egl_window *egl_window;
+	EGLSurface egl_surface;
+	EGLDisplay dpy;
+
+	cairo_surface_t *cairo_surface;
+};
 
 struct egl_ui *
 init_egl(struct wayland_t *ui){
@@ -63,42 +79,64 @@ init_egl(struct wayland_t *ui){
 	return egl;
 }
 
-struct egl_window *
-create_egl_surface(struct wayland_t *ui,
-			   struct rectangle *rectangle){
-	struct egl_window *surface;
+void
+fini_egl(struct egl_ui *egl)
+{
+	eglTerminate(egl->dpy);
+	eglReleaseThread();
+}
+
+struct window *
+window_create(struct wayland_t *ui, int width, int height){
+	struct window *window;
 	
-	surface = xzalloc(sizeof *surface);
+	window = xzalloc(sizeof *window);
 
-	surface->display = ui->display;
-	surface->surface = ui->surface;
-	surface->egl_window = wl_egl_window_create(surface->surface,
-							rectangle->width,
-							rectangle->height);
+	window->width = width;
+	window->height = height;
+
+	window->dpy = ui->egl->dpy;
+
+	window->egl_window = wl_egl_window_create(ui->surface,
+							window->width,
+							window->height);
 
 
-	surface->egl_surface = eglCreateWindowSurface(ui->egl->dpy,
+	window->egl_surface = eglCreateWindowSurface(ui->egl->dpy,
 							ui->egl->argb_config,
-							surface->egl_window,
+							window->egl_window,
 							NULL);
 
-	surface->cairo_surface =
+	window->cairo_surface =
 		cairo_gl_surface_create_for_egl(ui->egl->argb_device,
-							surface->egl_surface,
-							rectangle->width,
-							rectangle->height);
-	return surface;
+							window->egl_surface,
+							window->width,
+							window->height);
+	return window;
 }
 
 void
-ui_resize(struct wayland_t *ui, int width, int height){
-	wl_egl_window_resize(ui->egl_surface->egl_window, width, height, 0, 0);
-	cairo_gl_surface_set_size(ui->egl_surface->cairo_surface,width, height);
+window_destroy(struct window *window){
+	wl_egl_window_destroy(window->egl_window);
+	eglDestroySurface(window->dpy,window->egl_surface);
+	cairo_surface_destroy(window->cairo_surface);
+	free(window);
 }
 
 void
-ui_redraw(struct wayland_t *ui){
-	draw_window(ui,ui->egl_surface->cairo_surface);
-	cairo_gl_surface_swapbuffers(ui->egl_surface->cairo_surface);
-	ui->need_redraw = 0;
+window_resize(struct window *window, int width, int height){
+	window->width = width;
+	window->height = height;
+	wl_egl_window_resize(window->egl_window, width, height, 0, 0);
+	cairo_gl_surface_set_size(window->cairo_surface,width, height);
+}
+
+void
+window_redraw(struct window *window){
+	cairo_gl_surface_swapbuffers(window->cairo_surface);
+}
+
+cairo_surface_t *
+window_get_cairo_surface(struct window *window){
+	return window->cairo_surface;
 }

@@ -1,23 +1,14 @@
-#include <wayland-egl.h>
-#include <cairo/cairo-gl.h>
-
-struct egl_window {
-	cairo_surface_t *cairo_surface;
-	struct wl_display *display;
-	struct wl_surface *surface;
-	struct wl_egl_window *egl_window;
-	EGLSurface egl_surface;
-};
-struct egl_ui {
-	EGLDisplay dpy;
-	EGLConfig argb_config;
-	EGLContext argb_ctx;
-	cairo_device_t *argb_device;
-};
-
 struct egl_ui *
 init_egl(struct wayland_t *ui);
-struct egl_window *
-create_egl_surface(struct wayland_t *ui, struct rectangle *rectangle);
-void ui_resize(struct wayland_t *ui, int width, int height);
-void ui_redraw(struct wayland_t *ui);
+void
+fini_egl(struct egl_ui *egl);
+struct window *
+window_create(struct wayland_t *ui, int width, int height);
+void
+window_destroy(struct window *window);
+void
+window_resize(struct window *window, int width, int height);
+void
+window_redraw(struct window *window);
+cairo_surface_t *
+window_get_cairo_surface(struct window *window);

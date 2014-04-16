@@ -15,6 +15,7 @@
 
 #include "util.h"
 #include "ui.h"
+#include "draw.h"
 
 #ifdef HAVE_EGL
 	#include "egl.h"
@@ -36,38 +37,6 @@ struct xkb{
 	xkb_mod_index_t ctrl, alt, shift, logo;
 	unsigned int mods;
 };
-
-struct font *
-init_font(void){
-	struct font *font;
-	font = xzalloc(sizeof *font);
-	font->family = strdup("Terminus");
-	font->slant = CAIRO_FONT_SLANT_NORMAL;
-	font->weight = CAIRO_FONT_WEIGHT_NORMAL;
-	font->size = 14;
-	return font;
-}
-
-
-struct color_scheme *
-init_color_scheme(void){
-	struct color_scheme *color;
-	color = xzalloc(sizeof *color);
-
-	color->bg_color = xzalloc(sizeof *color->bg_color);
-	color->bg_color->r = 0;
-	color->bg_color->g = 0;
-	color->bg_color->b = 0;
-	color->bg_color->a = 0.8;
-	
-	color->font_color = xzalloc(sizeof *color->font_color);
-	color->font_color->r = 0;
-	color->font_color->g = 1;
-	color->font_color->b = 0;
-	color->font_color->a = 1;
-
-	return color;
-}
 
 void
 registry_handle_global(void *data, struct wl_registry *registry, uint32_t name,
@@ -143,10 +112,8 @@ keyboard_handle_leave(void *data, struct wl_keyboard *keyboard,
 	//struct wayland_t *ui = data;
 }
 
-int running;
-
-void
-toggle_fullscreen(struct wayland_t *ui){
+void 
+ui_toggle_fullscreen(struct wayland_t *ui){
 	ui->fullscreen = !ui->fullscreen;
 	if (ui->fullscreen){
 		wl_shell_surface_set_fullscreen(ui->shell_surface,
@@ -154,9 +121,12 @@ toggle_fullscreen(struct wayland_t *ui){
 							0, NULL);
 	}else{
 		wl_shell_surface_set_toplevel(ui->shell_surface);
-		ui_resize(ui, ui->window_rectangle->width, ui->window_rectangle->height);
+		window_resize(ui->window, 400, 400);
+		ui->need_redraw = 1;
 	}
 }
+
+extern int running;
 
 static void
 keyboard_handle_key(void *data, struct wl_keyboard *keyboard,
@@ -176,14 +146,12 @@ keyboard_handle_key(void *data, struct wl_keyboard *keyboard,
 		if (buf[0] == 'q')
 			running = 0;
 		if (buf[0] == 'f'){
-			toggle_fullscreen(ui);
-			if (ui->fullscreen)
-				return;
+			ui_toggle_fullscreen(ui);
+			return;
 		}
-		if (buf[0] == 8) /* handle backspace */
-			ui->buffer[strlen(ui->buffer)-1] = '\0';
-		else
-			strcat(ui->buffer,buf);
+		if (buf[0] == 'r'){
+			window_resize(ui->window, 400, 400);
+		}
 		ui->need_redraw = 1;
 	}
 }
@@ -236,26 +204,15 @@ static void
 pointer_handle_motion(void *data, struct wl_pointer *pointer,
 		      uint32_t time, wl_fixed_t sx_w, wl_fixed_t sy_w){
 	struct wayland_t *ui = data;
-	float sx = wl_fixed_to_double(sx_w);
-	float sy = wl_fixed_to_double(sy_w);
-
-	if (ui->pressed)
-	{
-		ui->icon->x = sx;ui->icon->y = sy;
-		ui->need_redraw=1;
-	}
+	//float sx = wl_fixed_to_double(sx_w);
+	//float sy = wl_fixed_to_double(sy_w);
+	ui->need_redraw = 1;
 }
 
 static void
 pointer_handle_button(void *data, struct wl_pointer *pointer, uint32_t serial,
 		      uint32_t time, uint32_t button, uint32_t state_w){
-	struct wayland_t *ui = data;
-	enum wl_pointer_button_state state = state_w;
-
-	if(state == WL_POINTER_BUTTON_STATE_PRESSED)
-		ui->pressed = 1;
-	else
-		ui->pressed = 0;
+	//struct wayland_t *ui = data;	
 }
 
 static void
@@ -301,11 +258,7 @@ handle_configure(void *data, struct wl_shell_surface *shell_surface,
 		 uint32_t edges, int32_t width, int32_t height)
 {
 	struct wayland_t *ui = data;
-	ui->window_rectangle->x = 0;
-	ui->window_rectangle->y = 0;
-	ui->window_rectangle->width = width;
-	ui->window_rectangle->height = height;
-	ui_resize(ui,width,height);
+	window_resize(ui->window,width,height);
 	ui->need_redraw = 1;
 }
 
@@ -385,8 +338,10 @@ init_ui(void) {
 	struct wayland_t *ui;
 
 	ui = xzalloc(sizeof *ui);
-	ui->font = init_font();
-	ui->color_scheme = init_color_scheme();
+	ui->bg_color.r = 0;
+	ui->bg_color.g = 0;
+	ui->bg_color.b = 0;
+	ui->bg_color.a = 0.8;
 
 	ui->display = fail_on_null(wl_display_connect(NULL));
 
@@ -400,7 +355,6 @@ init_ui(void) {
 
 	ui->xkb = xzalloc(sizeof *ui->xkb);
 	ui->xkb->ctx = xkb_context_new(0);
-	ui->buffer = xzalloc(sizeof *ui->buffer*50); /* FIXME: temporary */
 
 	ui->pointer = wl_seat_get_pointer(ui->seat);
 	wl_pointer_add_listener(ui->pointer, &pointer_listener, ui);
@@ -412,58 +366,35 @@ init_ui(void) {
 							   ui->surface);
 	wl_shell_surface_add_listener(ui->shell_surface, &shell_surface_listener, ui);
 
-	wl_shell_surface_set_title(ui->shell_surface,"shm surface");
+	wl_shell_surface_set_title(ui->shell_surface,"window title");
 	wl_shell_surface_set_toplevel(ui->shell_surface);
 
 	ui->data_device = wl_data_device_manager_get_data_device(ui->data_device_manager, ui->seat);
 	wl_data_device_add_listener(ui->data_device, &data_device_listener,
 				    ui);
 
-	ui->window_rectangle = xzalloc(sizeof *ui->window_rectangle);
-	ui->window_rectangle->x = 0;
-	ui->window_rectangle->y = 0;
-	ui->window_rectangle->width = 400;
-	ui->window_rectangle->height = 300;
+#ifdef HAVE_EGL
+	ui->egl = init_egl(ui);
+	if (!ui->egl){
+		printf("Error: initializing egl\n");
+		return NULL;
+	}
+#endif
 
-	#ifdef HAVE_EGL
-		fprintf(stderr, "using egl backend\n");
-		ui->egl = init_egl(ui);
-		if (!ui->egl){
-			printf("Error: initializing egl\n");
-			return NULL;
-		}
-		ui->egl_surface = create_egl_surface(ui, ui->window_rectangle);
-	#else
-		fprintf(stderr, "using shm backend\n");
-		ui->shm_surface = create_shm_surface(ui->shm, ui->window_rectangle);
-	#endif
-
-	ui->icon = xzalloc(sizeof *ui->icon);
-	ui->icon->width = 48; ui->icon->height = 48;
-	ui->icon->x = ui->window_rectangle->width - ui->icon->width;ui->icon->y = 0;
-	ui->icon->surface = cairo_image_surface_create_from_png("/usr/share/icons/gnome/48x48/places/folder.png");
+	ui->window = window_create(ui, 400, 300);
 
 	ui->need_redraw = 1;
-	ui->fullscreen = 0;
-
 	return ui;
 }
 
 void
 exit_ui(struct wayland_t *ui){
-	free(ui->font);
-	free(ui->color_scheme->bg_color);
-	free(ui->color_scheme->font_color);
-	free(ui->color_scheme);
-	#ifdef HAVE_EGL
-		cairo_surface_destroy(ui->egl_surface->cairo_surface);
-		free(ui->egl_surface);
-	#else
-		cairo_surface_destroy(ui->shm_surface->cairo_surface);
-		free(ui->shm_surface);
-	#endif
-	cairo_surface_destroy(ui->icon->surface);
-	free(ui->icon);
+	window_destroy(ui->window);
+
+#ifdef HAVE_EGL
+	fini_egl(ui->egl);
+#endif
+
 	if (ui->shell)
 		wl_shell_destroy(ui->shell);
 	if (ui->shm)
@@ -483,4 +414,13 @@ exit_ui(struct wayland_t *ui){
 
 	wl_display_disconnect(ui->display);
 	free(ui);
+}
+
+void
+ui_redraw(struct wayland_t *ui){
+	if(ui->need_redraw){
+		paint_surface(window_get_cairo_surface(ui->window),ui);
+		window_redraw(ui->window);
+		ui->need_redraw = 0;
+	}
 }

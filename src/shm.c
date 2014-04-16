@@ -20,7 +20,6 @@
 #include "util.h"
 #include "ui.h"
 #include "shm.h"
-#include "draw.h"
 
 #define SURFACE_OPAQUE 0x01
 #define SURFACE_SHM    0x02
@@ -39,6 +38,13 @@ struct shm_pool {
 struct shm_surface_data {
 	struct wl_buffer *buffer;
 	struct shm_pool *pool;
+};
+
+struct window {
+	struct rectangle rectangle;
+	struct wayland_t *ui;
+	struct wl_surface *surface;
+	cairo_surface_t *cairo_surface;
 };
 
 static const cairo_user_data_key_t shm_surface_data_key;
@@ -192,23 +198,29 @@ create_shm_surface_from_pool(void *none,
 	return surface;
 }
 
-struct shm_window *
-create_shm_surface(struct wl_shm *shm,
-			   struct rectangle *rectangle)
-{
-	struct shm_window *shm_surface;
+struct window *
+window_create(struct wayland_t *ui, int width, int height){
+	struct window *shm_surface;
 	struct shm_surface_data *data;
 	struct shm_pool *pool;
 
 	shm_surface = malloc(sizeof *shm_surface);
 
-	pool = shm_pool_create(shm,
-			       data_length_for_shm_surface(rectangle));
+	shm_surface->rectangle.x = 0;
+	shm_surface->rectangle.y = 0;
+	shm_surface->rectangle.width = width;
+	shm_surface->rectangle.height = height;
+
+	shm_surface->ui = ui;
+	shm_surface->surface = ui->surface;
+
+	pool = shm_pool_create(ui->shm,
+			       data_length_for_shm_surface(&shm_surface->rectangle));
 	if (!pool)
 		return NULL;
 
 	shm_surface->cairo_surface =
-		create_shm_surface_from_pool(shm, rectangle, pool);
+		create_shm_surface_from_pool(ui->shm, &shm_surface->rectangle, pool);
 
 	if (!shm_surface->cairo_surface) {
 		shm_pool_destroy(pool);
@@ -223,21 +235,30 @@ create_shm_surface(struct wl_shm *shm,
 }
 
 void
-ui_resize(struct wayland_t *ui, int width, int height){
-	cairo_surface_destroy(ui->shm_surface->cairo_surface);
-	free(ui->shm_surface);
-	ui->shm_surface = create_shm_surface(ui->shm, ui->window_rectangle);
+window_destroy(struct window *window){
+	cairo_surface_destroy(window->cairo_surface);
+	free(window);
 }
 
 void
-ui_redraw(struct wayland_t *ui){
-	draw_window(ui,ui->shm_surface->cairo_surface);
-	wl_surface_attach(ui->surface,get_buffer_from_cairo_surface(ui->shm_surface->cairo_surface),0,0);
+window_resize(struct window *window, int width, int height){
+	struct wayland_t *ui = window->ui;
+	window_destroy(window);
+	window = window_create(ui, width, height);
+}
+
+void
+window_redraw(struct window *window){
+	wl_surface_attach(window->surface,get_buffer_from_cairo_surface(window->cairo_surface),0,0);
 	/* repaint all the pixels in the surface, change size to only repaint changed area*/
-	wl_surface_damage(ui->surface, ui->window_rectangle->x, 
-							ui->window_rectangle->y, 
-							ui->window_rectangle->width, 
-							ui->window_rectangle->height);
-	wl_surface_commit(ui->surface);
-	ui->need_redraw = 0;
+	wl_surface_damage(window->surface, window->rectangle.x, 
+							window->rectangle.y, 
+							window->rectangle.width, 
+							window->rectangle.height);
+	wl_surface_commit(window->surface);
+}
+
+cairo_surface_t *
+window_get_cairo_surface(struct window *window){
+	return window->cairo_surface;
 }

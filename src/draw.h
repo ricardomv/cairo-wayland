@@ -1,2 +1,2 @@
 void
-draw_window(struct wayland_t *ui,cairo_surface_t *surface);
+paint_surface(cairo_surface_t *cairo_surface, struct wayland_t *ui);
