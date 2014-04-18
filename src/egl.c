@@ -80,10 +80,10 @@ init_egl(struct wayland_t *ui){
 }
 
 void
-fini_egl(struct egl_ui *egl)
-{
+fini_egl(struct egl_ui *egl){
 	eglTerminate(egl->dpy);
 	eglReleaseThread();
+	free(egl);
 }
 
 struct window *
@@ -100,7 +100,6 @@ window_create(struct wayland_t *ui, int width, int height){
 	window->egl_window = wl_egl_window_create(ui->surface,
 							window->width,
 							window->height);
-
 
 	window->egl_surface = eglCreateWindowSurface(ui->egl->dpy,
 							ui->egl->argb_config,
