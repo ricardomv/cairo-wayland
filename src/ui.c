@@ -354,7 +354,7 @@ init_ui(void) {
 	wl_keyboard_add_listener(ui->keyboard, &keyboard_listener, ui);
 
 	ui->xkb = xzalloc(sizeof *ui->xkb);
-	ui->xkb->ctx = xkb_context_new(0);
+	ui->xkb->ctx = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
 
 	ui->pointer = wl_seat_get_pointer(ui->seat);
 	wl_pointer_add_listener(ui->pointer, &pointer_listener, ui);
@@ -404,8 +404,9 @@ exit_ui(struct wayland_t *ui){
 	wl_compositor_destroy(ui->compositor);
 	wl_registry_destroy(ui->registry);
 	wl_keyboard_destroy(ui->keyboard);
-	free(ui->xkb->ctx); /* FIXME: is this the right thing to do? */
-	free(ui->xkb->state); /* again */
+	xkb_state_unref(ui->xkb->state);
+	xkb_keymap_unref(ui->xkb->keymap);
+	xkb_context_unref(ui->xkb->ctx);
 	free(ui->xkb);
 	wl_pointer_destroy(ui->pointer);
 	wl_data_device_manager_destroy(ui->data_device_manager);
