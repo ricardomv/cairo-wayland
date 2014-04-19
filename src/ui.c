@@ -15,7 +15,6 @@
 
 #include "util.h"
 #include "ui.h"
-#include "draw.h"
 
 #ifdef HAVE_EGL
 	#include "egl.h"
@@ -409,6 +408,7 @@ exit_ui(struct wayland_t *ui){
 	xkb_context_unref(ui->xkb->ctx);
 	free(ui->xkb);
 	wl_pointer_destroy(ui->pointer);
+	wl_data_device_destroy(ui->data_device);
 	wl_data_device_manager_destroy(ui->data_device_manager);
 	wl_surface_destroy(ui->surface);
 	wl_shell_surface_destroy(ui->shell_surface);
@@ -420,7 +420,6 @@ exit_ui(struct wayland_t *ui){
 void
 ui_redraw(struct wayland_t *ui){
 	if(ui->need_redraw){
-		paint_surface(window_get_cairo_surface(ui->window),ui);
 		window_redraw(ui->window);
 		ui->need_redraw = 0;
 	}

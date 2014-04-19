@@ -8,6 +8,7 @@
 #include "config.h"
 
 #include "ui.h"
+#include "draw.h"
 #include "egl.h"
 #include "util.h"
 
@@ -20,6 +21,7 @@ struct egl_ui {
 
 struct window{
 	int width, height;
+	struct wayland_t *ui;
 
 	struct wl_egl_window *egl_window;
 	EGLSurface egl_surface;
@@ -95,6 +97,7 @@ window_create(struct wayland_t *ui, int width, int height){
 	window->width = width;
 	window->height = height;
 
+	window->ui = ui;
 	window->dpy = ui->egl->dpy;
 
 	window->egl_window = wl_egl_window_create(ui->surface,
@@ -132,10 +135,6 @@ window_resize(struct window *window, int width, int height){
 
 void
 window_redraw(struct window *window){
+	paint_surface(window->cairo_surface,window->ui);
 	cairo_gl_surface_swapbuffers(window->cairo_surface);
-}
-
-cairo_surface_t *
-window_get_cairo_surface(struct window *window){
-	return window->cairo_surface;
 }

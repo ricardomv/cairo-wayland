@@ -19,6 +19,7 @@
 
 #include "util.h"
 #include "ui.h"
+#include "draw.h"
 #include "shm.h"
 
 #define SURFACE_OPAQUE 0x01
@@ -200,38 +201,38 @@ create_shm_surface_from_pool(void *none,
 
 struct window *
 window_create(struct wayland_t *ui, int width, int height){
-	struct window *shm_surface;
+	struct window *window;
 	struct shm_surface_data *data;
 	struct shm_pool *pool;
 
-	shm_surface = malloc(sizeof *shm_surface);
+	window = malloc(sizeof *window);
 
-	shm_surface->rectangle.x = 0;
-	shm_surface->rectangle.y = 0;
-	shm_surface->rectangle.width = width;
-	shm_surface->rectangle.height = height;
+	window->rectangle.x = 0;
+	window->rectangle.y = 0;
+	window->rectangle.width = width;
+	window->rectangle.height = height;
 
-	shm_surface->ui = ui;
-	shm_surface->surface = ui->surface;
+	window->ui = ui;
+	window->surface = ui->surface;
 
 	pool = shm_pool_create(ui->shm,
-			       data_length_for_shm_surface(&shm_surface->rectangle));
+			       data_length_for_shm_surface(&window->rectangle));
 	if (!pool)
 		return NULL;
 
-	shm_surface->cairo_surface =
-		create_shm_surface_from_pool(ui->shm, &shm_surface->rectangle, pool);
+	window->cairo_surface =
+		create_shm_surface_from_pool(ui->shm, &window->rectangle, pool);
 
-	if (!shm_surface->cairo_surface) {
+	if (!window->cairo_surface) {
 		shm_pool_destroy(pool);
 		return NULL;
 	}
 
 	/* make sure we destroy the pool when the surface is destroyed */
-	data = cairo_surface_get_user_data(shm_surface->cairo_surface, &shm_surface_data_key);
+	data = cairo_surface_get_user_data(window->cairo_surface, &shm_surface_data_key);
 	data->pool = pool;
 
-	return shm_surface;
+	return window;
 }
 
 void
@@ -249,6 +250,7 @@ window_resize(struct window *window, int width, int height){
 
 void
 window_redraw(struct window *window){
+	paint_surface(window->cairo_surface,window->ui);
 	wl_surface_attach(window->surface,get_buffer_from_cairo_surface(window->cairo_surface),0,0);
 	/* repaint all the pixels in the surface, change size to only repaint changed area*/
 	wl_surface_damage(window->surface, window->rectangle.x, 
@@ -256,9 +258,4 @@ window_redraw(struct window *window){
 							window->rectangle.width, 
 							window->rectangle.height);
 	wl_surface_commit(window->surface);
-}
-
-cairo_surface_t *
-window_get_cairo_surface(struct window *window){
-	return window->cairo_surface;
 }
