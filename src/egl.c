@@ -83,6 +83,9 @@ init_egl(struct wayland_t *ui){
 
 void
 fini_egl(struct egl_ui *egl){
+	cairo_device_destroy(egl->argb_device);
+	eglMakeCurrent(egl->dpy, EGL_NO_SURFACE, EGL_NO_SURFACE,
+							EGL_NO_CONTEXT);
 	eglTerminate(egl->dpy);
 	eglReleaseThread();
 	free(egl);
