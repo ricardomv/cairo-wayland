@@ -12,3 +12,5 @@ void
 window_redraw(struct window *window);
 cairo_surface_t *
 window_get_cairo_surface(struct window *window);
+void
+window_get_width_height(struct window *window, int *w, int *h);

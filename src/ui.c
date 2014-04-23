@@ -6,6 +6,7 @@
 
 #include <wayland-client.h>
 #include <wayland-client-protocol.h>
+#include <linux/input.h>
 
 #include <cairo/cairo.h>
 
@@ -199,19 +200,70 @@ pointer_handle_leave(void *data, struct wl_pointer *pointer,
 	//struct wayland_t *ui = data;
 }
 
+int
+get_resize_state(struct wayland_t *ui){
+	int width, height;
+	int margin = 10;
+	
+	window_get_width_height(ui->window, &width, &height);
+
+	if (ui->px < margin){
+		if (ui->py < height/4){
+			return WL_SHELL_SURFACE_RESIZE_TOP_LEFT;
+		}else if (ui->py > height - height/4){
+			return WL_SHELL_SURFACE_RESIZE_BOTTOM_LEFT;
+		}
+		return WL_SHELL_SURFACE_RESIZE_LEFT;
+	}else if (ui->px > width - margin){
+		if (ui->py < height/4){
+			return WL_SHELL_SURFACE_RESIZE_TOP_RIGHT;
+		}else if (ui->py > height - height/4){
+			return WL_SHELL_SURFACE_RESIZE_BOTTOM_RIGHT;
+		}
+		return WL_SHELL_SURFACE_RESIZE_RIGHT;
+	}else if (ui->py < margin){
+		if (ui->px < width/4){
+			return WL_SHELL_SURFACE_RESIZE_TOP_LEFT;
+		}else if (ui->px > width - width/4){
+			return WL_SHELL_SURFACE_RESIZE_TOP_RIGHT;
+		}
+		return WL_SHELL_SURFACE_RESIZE_TOP;
+	}else if (ui->py > height - margin){
+		if (ui->px < width/4){
+			return WL_SHELL_SURFACE_RESIZE_BOTTOM_LEFT;
+		}else if (ui->px > width - width/4){
+			return WL_SHELL_SURFACE_RESIZE_BOTTOM_RIGHT;
+		}
+		return WL_SHELL_SURFACE_RESIZE_BOTTOM;
+	}
+	return WL_SHELL_SURFACE_RESIZE_NONE;
+}
+
 static void
 pointer_handle_motion(void *data, struct wl_pointer *pointer,
 		      uint32_t time, wl_fixed_t sx_w, wl_fixed_t sy_w){
 	struct wayland_t *ui = data;
-	//float sx = wl_fixed_to_double(sx_w);
-	//float sy = wl_fixed_to_double(sy_w);
+	float sx = wl_fixed_to_double(sx_w);
+	float sy = wl_fixed_to_double(sy_w);
+
+	ui->px = sx;
+	ui->py = sy;
+
+	ui->resize = get_resize_state(ui);
+
 	ui->need_redraw = 1;
 }
 
 static void
 pointer_handle_button(void *data, struct wl_pointer *pointer, uint32_t serial,
 		      uint32_t time, uint32_t button, uint32_t state_w){
-	//struct wayland_t *ui = data;	
+	struct wayland_t *ui = data;
+	if (button == BTN_LEFT && state_w == WL_POINTER_BUTTON_STATE_PRESSED){
+		if (ui->resize)
+			wl_shell_surface_resize(ui->shell_surface,ui->seat,serial,ui->resize);
+		else
+			wl_shell_surface_move(ui->shell_surface,ui->seat,serial);
+	}
 }
 
 static void
@@ -412,7 +464,6 @@ exit_ui(struct wayland_t *ui){
 	wl_data_device_manager_destroy(ui->data_device_manager);
 	wl_surface_destroy(ui->surface);
 	wl_shell_surface_destroy(ui->shell_surface);
-
 	wl_display_disconnect(ui->display);
 	free(ui);
 }

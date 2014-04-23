@@ -141,3 +141,9 @@ window_redraw(struct window *window){
 	paint_surface(window->cairo_surface,window->ui);
 	cairo_gl_surface_swapbuffers(window->cairo_surface);
 }
+
+void
+window_get_width_height(struct window *window, int *w, int *h){
+	*w = window->width;
+	*h = window->height;
+}

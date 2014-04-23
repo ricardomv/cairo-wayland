@@ -259,3 +259,9 @@ window_redraw(struct window *window){
 							window->rectangle.height);
 	wl_surface_commit(window->surface);
 }
+
+void
+window_get_width_height(struct window *window, int *w, int *h){
+	*w = window->rectangle.width;
+	*h = window->rectangle.height;
+}

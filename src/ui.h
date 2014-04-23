@@ -31,6 +31,8 @@ struct wayland_t {
 
 	struct window* window;
 
+	float px, py; /* pointer position */
+	int resize;
 	struct color bg_color;
 	int fullscreen;
 	int need_redraw;
@@ -38,5 +40,4 @@ struct wayland_t {
 
 struct wayland_t *init_ui(void);
 void exit_ui(struct wayland_t *ui);
-void
-ui_redraw(struct wayland_t *ui);
+void ui_redraw(struct wayland_t *ui);
