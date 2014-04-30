@@ -6,6 +6,7 @@
 
 #include <wayland-client.h>
 #include <wayland-client-protocol.h>
+#include <wayland-cursor.h>
 #include <linux/input.h>
 
 #include <cairo/cairo.h>
@@ -53,9 +54,9 @@ registry_handle_global(void *data, struct wl_registry *registry, uint32_t name,
 	} else if(strcmp(interface, "wl_seat") == 0) {
 		ui->seat = wl_registry_bind(registry, name,
 					   &wl_seat_interface, 1);
-	 } else if(strcmp(interface, "wl_output") == 0) {
-	 	ui->output = wl_registry_bind(registry, name, &wl_output_interface, 1);
-	 } else if (strcmp(interface, "wl_data_device_manager") == 0) {
+	} else if(strcmp(interface, "wl_output") == 0) {
+		ui->output = wl_registry_bind(registry, name, &wl_output_interface, 1);
+	} else if (strcmp(interface, "wl_data_device_manager") == 0) {
 		ui->data_device_manager = wl_registry_bind(registry, name,
 					 &wl_data_device_manager_interface, 1);
 	}
@@ -189,9 +190,29 @@ static const struct wl_keyboard_listener keyboard_listener = {
 
 static void
 pointer_handle_enter(void *data, struct wl_pointer *pointer,
-		     uint32_t serial, struct wl_surface *surface,
-		     wl_fixed_t sx_w, wl_fixed_t sy_w){
-	//struct wayland_t *ui = data;
+					uint32_t serial, struct wl_surface *surface,
+					wl_fixed_t sx_w, wl_fixed_t sy_w){
+	struct wayland_t *ui = data;
+	struct wl_buffer *buffer;
+	struct wl_cursor *cursor = ui->default_cursor;
+	struct wl_cursor_image *image;
+
+	if (ui->fullscreen)
+		wl_pointer_set_cursor(pointer, serial, NULL, 0, 0);
+	else if (cursor) {
+		image = ui->default_cursor->images[0];
+		buffer = wl_cursor_image_get_buffer(image);
+		if (!buffer)
+			return;
+		wl_pointer_set_cursor(pointer, serial,
+					ui->cursor_surface,
+					image->hotspot_x,
+					image->hotspot_y);
+		wl_surface_attach(ui->cursor_surface, buffer, 0, 0);
+		wl_surface_damage(ui->cursor_surface, 0, 0,
+				  image->width, image->height);
+		wl_surface_commit(ui->cursor_surface);
+	}
 }
 
 static void
@@ -407,6 +428,18 @@ init_ui(void) {
 	ui->xkb = xzalloc(sizeof *ui->xkb);
 	ui->xkb->ctx = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
 
+	ui->cursor_theme = wl_cursor_theme_load(NULL, 32, ui->shm);
+	if (!ui->cursor_theme) {
+		fprintf(stderr, "unable to load default theme\n");
+		return NULL;
+	}
+	ui->default_cursor = wl_cursor_theme_get_cursor(ui->cursor_theme, "left_ptr");
+	if (!ui->default_cursor) {
+		fprintf(stderr, "unable to load default left pointer\n");
+		return NULL;
+	}
+	ui->cursor_surface = wl_compositor_create_surface(ui->compositor);
+
 	ui->pointer = wl_seat_get_pointer(ui->seat);
 	wl_pointer_add_listener(ui->pointer, &pointer_listener, ui);
 
@@ -454,12 +487,17 @@ exit_ui(struct wayland_t *ui){
 	wl_seat_destroy(ui->seat);
 	wl_compositor_destroy(ui->compositor);
 	wl_registry_destroy(ui->registry);
+
 	wl_keyboard_destroy(ui->keyboard);
 	xkb_state_unref(ui->xkb->state);
 	xkb_keymap_unref(ui->xkb->keymap);
 	xkb_context_unref(ui->xkb->ctx);
 	free(ui->xkb);
+
+	wl_surface_destroy(ui->cursor_surface);
+	wl_cursor_theme_destroy(ui->cursor_theme);
 	wl_pointer_destroy(ui->pointer);
+
 	wl_data_device_destroy(ui->data_device);
 	wl_data_device_manager_destroy(ui->data_device_manager);
 	wl_surface_destroy(ui->surface);

@@ -8,6 +8,7 @@ def configure(cnf):
 	cnf.load('compiler_c')
 	cnf.check(features='c cprogram cshlib', cflags=['-Wall','-g'], defines=['var=foo'])
 	cnf.check_cfg(package='wayland-client', args='--cflags --libs', uselib_store='SH_LIBS', mandatory=True)
+	cnf.check_cfg(package='wayland-cursor', args='--cflags --libs', uselib_store='SH_LIBS', mandatory=True)
 	cnf.check_cfg(package='xkbcommon', args='--cflags --libs', uselib_store='SH_LIBS', mandatory=True)
 	cnf.check_cfg(package='egl', args='--cflags --libs', mandatory=False)
 	if cnf.env.LIB_EGL:

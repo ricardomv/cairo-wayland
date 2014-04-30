@@ -27,6 +27,10 @@ int main(int argc, char const *argv[])
 
 	term = xzalloc(sizeof *term);
 	term->ui = init_ui();
+	if (!term->ui){
+		free(term);
+		return 0;
+	}
 
 	sigint.sa_handler = signal_int;
 	sigemptyset(&sigint.sa_mask);

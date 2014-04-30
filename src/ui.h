@@ -15,6 +15,9 @@ struct wayland_t {
 	struct wl_registry *registry;
 	struct wl_compositor *compositor;
 	struct wl_shm *shm;
+	struct wl_cursor_theme *cursor_theme;
+	struct wl_cursor *default_cursor;
+	struct wl_surface *cursor_surface;
 	struct wl_shell *shell;
 	struct wl_shell_surface *shell_surface;
 	struct wl_surface *surface;
