@@ -9,8 +9,6 @@
 #include <wayland-cursor.h>
 #include <linux/input.h>
 
-#include <cairo/cairo.h>
-
 #include <xkbcommon/xkbcommon.h>
 
 #include "config.h"
